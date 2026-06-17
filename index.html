@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Per Bea</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Per Bea" />
+  <style>
+    :root {
+      --bg:        #fce8ec;
+      --surface:   #ffffff;
+      --surface2:  #fdf2f4;
+      --border:    #f0cdd4;
+      --accent:    #c4637a;
+      --accent-bg: #f7dde3;
+      --text:      #2d1a1f;
+      --muted:     #b08890;
+      --font: -apple-system, 'SF Pro Text', 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: max(env(safe-area-inset-top, 0px), 56px) 20px 48px;
+      gap: 20px;
+    }
+
+    /* HEADER */
+    .header { width: 100%; max-width: 420px; text-align: center; padding: 4px 0; }
+    .header-greeting { font-size: 30px; font-weight: 300; color: var(--text); letter-spacing: -0.4px; }
+    .header-greeting span { color: var(--accent); }
+    .header-compliment { font-size: 14px; color: var(--muted); margin-top: 5px; }
+    .header-date { font-size: 12px; color: var(--muted); margin-top: 2px; text-transform: capitalize; }
+
+    /* CARD */
+    .card {
+      width: 100%; max-width: 420px;
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 2px 20px rgba(180,80,100,.09);
+      display: flex; flex-direction: column;
+    }
+
+    /* card content area */
+    .card-body {
+      padding: 36px 24px 28px;
+      min-height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      flex: 1;
+    }
+
+    /* card footer — timer always here */
+    .card-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 22px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .timer-label { font-size: 12px; color: var(--muted); }
+    .timer-value { font-size: 14px; font-weight: 400; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+
+    /* GIFT */
+    .gift-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      cursor: pointer; user-select: none;
+    }
+    .gift-wrap:active { transform: scale(.96); }
+    .gift-box { position: relative; width: 110px; height: 96px; }
+
+    .gift-box-body {
+      position: absolute;
+      bottom: 0; left: 0; right: 0; height: 64px;
+      background: var(--accent-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 0 0 16px 16px;
+    }
+    .gift-box-body::after {
+      content: '';
+      position: absolute;
+      left: 50%; top: 0; bottom: 0;
+      width: 16px; margin-left: -8px;
+      background: var(--accent); opacity: .3;
+    }
+    .gift-lid {
+      position: absolute;
+      top: 20px; left: -4px; right: -4px; height: 22px;
+      background: var(--accent-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      transition: transform .55s cubic-bezier(.34,1.4,.64,1), opacity .4s;
+      transform-origin: center bottom;
+    }
+    .gift-lid::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; left: 50%; width: 16px; margin-left: -8px;
+      background: var(--accent); opacity: .3;
+    }
+    .gift-bow {
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 44px; height: 26px;
+      transition: transform .55s cubic-bezier(.34,1.4,.64,1), opacity .35s;
+    }
+    .gift-bow::before, .gift-bow::after {
+      content: '';
+      position: absolute; top: 4px;
+      width: 18px; height: 18px;
+      border-radius: 50% 50% 50% 0;
+      background: var(--accent); opacity: .65;
+    }
+    .gift-bow::before { left: 2px; transform: rotate(-45deg); }
+    .gift-bow::after  { right: 2px; transform: rotate(45deg) scaleX(-1); }
+
+    .gift-wrap.opened .gift-lid { transform: translateY(-32px) rotate(-14deg); opacity: 0; }
+    .gift-wrap.opened .gift-bow { transform: translateX(-50%) translateY(-26px) rotate(12deg); opacity: 0; }
+
+    .gift-hint { font-size: 13px; color: var(--muted); }
+
+    /* REVEALED */
+    .revealed-state { display: flex; flex-direction: column; gap: 0; text-align: center; width: 100%; }
+    .revealed-text { font-size: 22px; font-weight: 400; color: var(--text); line-height: 1.5; }
+
+    /* BOTTOM NAV */
+    .bottom-row {
+      width: 100%; max-width: 420px;
+      display: flex; justify-content: center;
+      padding-top: 4px;
+    }
+    .link-btn {
+      background: none; border: none; color: var(--muted);
+      font-family: var(--font); font-size: 13px;
+      padding: 8px 16px; cursor: pointer; border-radius: 10px;
+      transition: color .15s;
+      text-decoration: none; display: inline-block;
+    }
+    .link-btn:active { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-greeting">Ciao, <span id="welcome-name">Bea</span></div>
+    <div class="header-compliment" id="welcome-compliment"></div>
+    <div class="header-date" id="header-date"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" id="card-body"></div>
+    <div class="card-footer">
+      <span class="timer-label">Prossimo messaggio tra</span>
+      <span class="timer-value" id="global-timer">--:--:--</span>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <a class="link-btn" href="storico.html">I giorni scorsi</a>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────
+const GITHUB_USER  = 'llore22';
+const GITHUB_REPO  = 'ecco-perche-ti-amo';
+const GITHUB_TOKEN = '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';
+const DATA_FILE    = 'data.json';
+
+const COMPLIMENTS = [
+  "sei la cosa piu bella che mi sia capitata",
+  "illumini qualsiasi stanza in cui entri",
+  "il mio posto preferito sei tu",
+  "ogni giorno con te e un regalo",
+  "sei straordinaria, lo sai",
+  "fai sembrare tutto piu leggero",
+  "sei la mia persona preferita al mondo",
+];
+// ─────────────────────────────────────────────────────────────────────
+
+let appData = { nicknames: ['Bea', 'Amore', 'Piccola', 'Tesoro'], messages: {} };
+let dataFileSha = null;
+let revealedToday = false;
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function tomorrowKey() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function formatDate(str) { const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; }
+
+// ── GITHUB ────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (res.status === 404) { await createDataFile(); return; }
+    const json = await res.json();
+    dataFileSha = json.sha;
+    appData = JSON.parse(atob(json.content.replace(/\n/g,'')));
+  } catch(e) {
+    console.warn('Offline:', e);
+    appData.messages[todayKey()]    = "mi fai venire voglia di essere la versione migliore di me stesso, solo per starti accanto";
+    appData.messages[tomorrowKey()] = "ogni volta che ridi dimentico per un momento tutto il resto del mondo";
+  }
+}
+
+async function createDataFile() {
+  appData.messages[todayKey()]    = "mi fai venire voglia di essere la versione migliore di me stesso, solo per starti accanto";
+  appData.messages[tomorrowKey()] = "ogni volta che ridi dimentico per un momento tutto il resto del mondo";
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData,null,2))));
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      { method:'PUT', headers:{Authorization:`token ${GITHUB_TOKEN}`,'Content-Type':'application/json'},
+        body: JSON.stringify({message:'init data', content}) }
+    );
+    const json = await res.json();
+    dataFileSha = json.content?.sha;
+  } catch(e) { console.warn(e); }
+}
+
+// ── TIMER (always on) ────────────────────────────────────────────────
+function startGlobalTimer() {
+  const tick = () => {
+    const el = document.getElementById('global-timer');
+    if (!el) return;
+    const now = new Date();
+    const next = new Date(now);
+    next.setDate(next.getDate() + 1);
+    next.setHours(10, 0, 0, 0);
+    const diff = next - now;
+    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+    el.textContent = `${h}:${m}:${s}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── CARD ──────────────────────────────────────────────────────────────
+function renderCard() {
+  const today = todayKey();
+  const todayMsg = (appData.messages || {})[today];
+  const body = document.getElementById('card-body');
+
+  if (!todayMsg) {
+    body.innerHTML = `
+      <div style="text-align:center; color:var(--muted); font-size:15px; line-height:1.6">
+        Il messaggio di oggi<br>non e ancora disponibile
+      </div>`;
+  } else if (revealedToday) {
+    renderRevealed(body, todayMsg);
+  } else {
+    renderGift(body, todayMsg);
+  }
+}
+
+function renderGift(container, msg) {
+  window._pendingMsg = msg;
+  container.innerHTML = `
+    <div class="gift-wrap" id="gift" onclick="openGift()">
+      <div class="gift-box">
+        <div class="gift-bow"></div>
+        <div class="gift-lid"></div>
+        <div class="gift-box-body"></div>
+      </div>
+      <div class="gift-hint">Tocca per aprire</div>
+    </div>`;
+}
+
+function openGift() {
+  const gift = document.getElementById('gift');
+  gift.classList.add('opened');
+  gift.onclick = null;
+  gift.querySelector('.gift-hint').textContent = '';
+  setTimeout(() => {
+    revealedToday = true;
+    renderRevealed(document.getElementById('card-body'), window._pendingMsg);
+  }, 600);
+}
+
+function renderRevealed(container, msg) {
+  container.innerHTML = `
+    <div class="revealed-state">
+      <div class="revealed-text">${msg}</div>
+    </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function init() {
+  await loadData();
+
+  const nicks = appData.nicknames?.length ? appData.nicknames : ['Bea'];
+  document.getElementById('welcome-name').textContent = nicks[Math.floor(Math.random() * nicks.length)];
+  document.getElementById('welcome-compliment').textContent = COMPLIMENTS[Math.floor(Math.random() * COMPLIMENTS.length)];
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+  renderCard();
+  startGlobalTimer();
+}
+
+init();
+</script>
+</body>
+</html>

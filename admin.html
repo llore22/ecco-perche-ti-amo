@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Admin</title>
+  <style>
+    :root {
+      --bg:        #fce8ec;
+      --surface:   #ffffff;
+      --surface2:  #fdf2f4;
+      --border:    #f0cdd4;
+      --accent:    #c4637a;
+      --accent-bg: #f7dde3;
+      --text:      #2d1a1f;
+      --muted:     #b08890;
+      --font: -apple-system, 'SF Pro Text', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      --r: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+
+    /* LOGIN */
+    #login {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px; padding: 32px;
+    }
+    #login h1 { font-size: 24px; font-weight: 400; color: var(--text); }
+    #login p { font-size: 14px; color: var(--muted); margin-top: -12px; }
+    #login-form { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* PANEL */
+    #panel { display: none; flex-direction: column; align-items: center; gap: 20px;
+      padding: 60px 20px 60px; }
+    #panel.visible { display: flex; }
+    .panel-title { font-size: 22px; font-weight: 400; color: var(--text); align-self: flex-start; width: 100%; max-width: 440px; }
+
+    /* SHARED */
+    .card {
+      width: 100%; max-width: 440px;
+      background: var(--surface); border-radius: var(--r); padding: 22px;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 1px 10px rgba(180,80,100,.07);
+    }
+    .card-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+    input[type="text"], input[type="password"], input[type="date"], textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 11px 14px;
+      color: var(--text); font-family: var(--font); font-size: 15px;
+      outline: none; transition: border-color .2s; -webkit-appearance: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { min-height: 80px; resize: vertical; }
+    .btn {
+      border: none; border-radius: 12px; font-family: var(--font);
+      font-size: 15px; padding: 13px; cursor: pointer; transition: filter .15s; width: 100%;
+    }
+    .btn-primary { background: var(--accent); color: #fff; font-weight: 500; }
+    .btn-primary:active { filter: brightness(.9); }
+    .btn-secondary { background: var(--accent-bg); color: var(--accent); }
+    .btn-secondary:active { filter: brightness(.95); }
+    .btn-danger {
+      background: none; border: 1px solid #f0cdd4; color: #c07070;
+      border-radius: 10px; font-family: var(--font); font-size: 13px;
+      padding: 7px 12px; cursor: pointer; flex-shrink: 0; width: auto;
+    }
+    .status-msg { font-size: 13px; padding: 9px 14px; border-radius: 10px; text-align: center; display: none; }
+    .status-msg.ok { background: #e8f5e8; color: #4a8a4a; display: block; }
+    .status-msg.err { background: #fde8e8; color: #a04040; display: block; }
+
+    /* NICK */
+    .nick-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .nick-chip {
+      background: var(--accent-bg); border-radius: 20px; padding: 6px 12px;
+      font-size: 14px; color: var(--accent); display: flex; align-items: center; gap: 6px;
+    }
+    .nick-chip button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
+    .nick-add-row { display: flex; gap: 8px; }
+    .nick-add-row input { flex: 1; }
+    .btn-small {
+      background: var(--accent-bg); color: var(--accent); border: none;
+      border-radius: 12px; font-family: var(--font); font-size: 14px;
+      padding: 0 16px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* MSG LIST */
+    .msg-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+    .msg-item {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    }
+    .msg-item-left { flex: 1; }
+    .msg-item-date { font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+    .msg-item-text { font-size: 14px; color: var(--text); line-height: 1.4; }
+    .empty-msg { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <h1>Pannello segreto</h1>
+  <p>Solo per te</p>
+  <div id="login-form">
+    <div>
+      <label>Password</label>
+      <input type="password" id="pw" placeholder="Password" />
+    </div>
+    <button class="btn btn-primary" onclick="checkLogin()">Entra</button>
+    <div id="login-err" class="status-msg err">Password errata</div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <div class="panel-title">Pannello segreto</div>
+
+  <!-- nomignoli -->
+  <div class="card">
+    <div class="card-title">Nomignoli</div>
+    <div class="nick-list" id="nick-list"></div>
+    <div class="nick-add-row">
+      <input type="text" id="nick-input" placeholder="Nuovo nomignolo" />
+      <button class="btn-small" onclick="addNick()">Aggiungi</button>
+    </div>
+    <button class="btn btn-primary" onclick="saveNicks()">Salva nomignoli</button>
+    <div id="nick-status" class="status-msg"></div>
+  </div>
+
+  <!-- nuovo messaggio -->
+  <div class="card">
+    <div class="card-title">Aggiungi un motivo</div>
+    <div>
+      <label>Data</label>
+      <input type="date" id="new-date" />
+    </div>
+    <div>
+      <label>Il motivo per cui la ami</label>
+      <textarea id="new-text" placeholder="Perche..."></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="addMessage()">Salva messaggio</button>
+    <div id="add-status" class="status-msg"></div>
+  </div>
+
+  <!-- lista messaggi -->
+  <div class="card">
+    <div class="card-title">Tutti i messaggi</div>
+    <div class="msg-list" id="msg-list"></div>
+  </div>
+
+  <button class="btn btn-secondary" style="max-width:440px" onclick="logout()">Esci</button>
+</div>
+
+<script>
+const GITHUB_USER    = 'llore22';
+const GITHUB_REPO    = 'ecco-perche-ti-amo';
+const GITHUB_TOKEN   = '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';
+const ADMIN_PASSWORD = 'amore';
+const DATA_FILE      = 'data.json';
+
+let appData = { nicknames: [], messages: {} };
+let dataFileSha = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────
+function checkLogin() {
+  if (document.getElementById('pw').value === ADMIN_PASSWORD) {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('panel').classList.add('visible');
+    loadData();
+  } else {
+    const err = document.getElementById('login-err');
+    err.classList.add('err');
+    setTimeout(() => err.classList.remove('err'), 2500);
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkLogin(); });
+function logout() { location.reload(); }
+
+// ── GITHUB ────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (res.status === 404) { renderAdmin(); return; }
+    const json = await res.json();
+    dataFileSha = json.sha;
+    appData = JSON.parse(atob(json.content.replace(/\n/g,'')));
+  } catch(e) { console.warn(e); }
+  renderAdmin();
+}
+
+async function saveData(statusId) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'update data', content, sha: dataFileSha })
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    dataFileSha = json.content.sha;
+    showStatus(statusId, 'Salvato', 'ok');
+  } catch(e) { showStatus(statusId, 'Errore nel salvataggio', 'err'); }
+}
+
+// ── ADMIN UI ──────────────────────────────────────────────────────────
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function formatDate(str) { const [y,m,d] = str.split('-'); return `${d}/${m}/${y}`; }
+
+function renderAdmin() {
+  // nomignoli
+  const nickList = document.getElementById('nick-list');
+  nickList.innerHTML = '';
+  (appData.nicknames || []).forEach((n, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'nick-chip';
+    chip.innerHTML = `${n}<button onclick="removeNick(${i})">x</button>`;
+    nickList.appendChild(chip);
+  });
+
+  document.getElementById('new-date').value = todayKey();
+
+  // messaggi
+  const msgList = document.getElementById('msg-list');
+  msgList.innerHTML = '';
+  const keys = Object.keys(appData.messages || {}).sort().reverse();
+  if (!keys.length) { msgList.innerHTML = '<p class="empty-msg">Nessun messaggio ancora.</p>'; return; }
+  keys.forEach(k => {
+    const el = document.createElement('div');
+    el.className = 'msg-item';
+    el.innerHTML = `<div class="msg-item-left">
+        <div class="msg-item-date">${formatDate(k)}</div>
+        <div class="msg-item-text">${appData.messages[k]}</div>
+      </div>
+      <button class="btn-danger" onclick="deleteMsg('${k}')">Elimina</button>`;
+    msgList.appendChild(el);
+  });
+}
+
+function addNick() {
+  const input = document.getElementById('nick-input');
+  const val = input.value.trim(); if (!val) return;
+  if (!appData.nicknames) appData.nicknames = [];
+  appData.nicknames.push(val); input.value = ''; renderAdmin();
+}
+function removeNick(i) { appData.nicknames.splice(i,1); renderAdmin(); }
+async function saveNicks() { await saveData('nick-status'); }
+
+async function addMessage() {
+  const date = document.getElementById('new-date').value;
+  const text = document.getElementById('new-text').value.trim();
+  if (!date || !text) { showStatus('add-status','Compila data e testo','err'); return; }
+  if (!appData.messages) appData.messages = {};
+  appData.messages[date] = text;
+  document.getElementById('new-text').value = '';
+  await saveData('add-status'); renderAdmin();
+}
+
+async function deleteMsg(key) {
+  if (!confirm(`Eliminare il messaggio del ${formatDate(key)}?`)) return;
+  delete appData.messages[key];
+  await saveData('add-status'); renderAdmin();
+}
+
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = `status-msg ${type}`;
+  setTimeout(() => { el.className = 'status-msg'; }, 3000);
+}
+</script>
+</body>
+</html>

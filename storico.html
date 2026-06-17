@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Storico dei messaggini</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <style>
+    :root {
+      --bg:        #fce8ec;
+      --surface:   #ffffff;
+      --border:    #f0cdd4;
+      --accent:    #c4637a;
+      --text:      #2d1a1f;
+      --muted:     #b08890;
+      --font: -apple-system, 'SF Pro Text', 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: max(env(safe-area-inset-top, 0px), 56px) 20px 48px;
+      gap: 16px;
+    }
+
+    .top-bar {
+      width: 100%; max-width: 420px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .back-btn {
+      background: none; border: none; color: var(--accent);
+      font-family: var(--font); font-size: 15px;
+      padding: 6px 0; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .page-title { font-size: 22px; font-weight: 400; color: var(--text); }
+
+    .empty-state { font-size: 15px; color: var(--muted); text-align: center; margin-top: 40px; }
+
+    .past-list { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+
+    .past-item {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 20px 20px;
+      box-shadow: 0 1px 10px rgba(180,80,100,.07);
+    }
+    .past-item-meta {
+      font-size: 11px; color: var(--muted);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .past-item-text {
+      font-size: 18px; font-weight: 400; color: var(--text); line-height: 1.5;
+    }
+
+    .loading { font-size: 14px; color: var(--muted); margin-top: 40px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top-bar">
+    <a class="back-btn" href="index.html">Indietro</a>
+  </div>
+
+  <div style="width:100%;max-width:420px">
+    <div class="page-title">I giorni scorsi</div>
+  </div>
+
+  <div class="loading" id="loading">Caricamento...</div>
+  <div class="past-list" id="past-list" style="display:none"></div>
+  <div class="empty-state" id="empty-state" style="display:none">Nessun messaggio passato ancora.</div>
+
+</div>
+
+<script>
+const GITHUB_USER  = 'llore22';
+const GITHUB_REPO  = 'ecco-perche-ti-amo';
+const GITHUB_TOKEN = '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';
+const DATA_FILE    = 'data.json';
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function formatDate(str) { const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; }
+
+async function init() {
+  let appData = { messages: {} };
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      appData = JSON.parse(atob(json.content.replace(/\n/g,'')));
+    }
+  } catch(e) { console.warn(e); }
+
+  document.getElementById('loading').style.display = 'none';
+
+  const today = todayKey();
+  const allKeys = Object.keys(appData.messages || {}).sort();
+  const past = allKeys.filter(k => k < today && appData.messages[k]);
+
+  if (!past.length) {
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  const list = document.getElementById('past-list');
+  list.style.display = 'flex';
+
+  [...past].reverse().forEach(k => {
+    const idx = allKeys.indexOf(k) + 1;
+    const el = document.createElement('div');
+    el.className = 'past-item';
+    el.innerHTML = `<div class="past-item-meta">Giorno ${idx} &middot; ${formatDate(k)}</div>
+      <div class="past-item-text">${appData.messages[k]}</div>`;
+    list.appendChild(el);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
