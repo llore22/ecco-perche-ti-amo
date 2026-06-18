@@ -3,20 +3,20 @@ const WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev/";
 async function loadData() {
   try {
     const res = await fetch(WORKER_URL, { method: 'GET' });
-    
-    if (res.status === 404) { 
-      await createDataFile(); 
-      return; 
-    }
+    if (res.status === 404) { await createDataFile(); return; }
     
     const json = await res.json();
-    dataFileSha = json.sha; 
-    appData = json.content; 
+    dataFileSha = json.sha;
+    appData = json.content;
+    
+    // ← AGGIUNGI QUESTO: normalizza nicknames in array
+    if (!Array.isArray(appData.nicknames)) {
+      appData.nicknames = Object.values(appData.nicknames || []);
+    }
+    if (!appData.messages) appData.messages = {};
+    
     console.log("Dati caricati!");
-    try {
-      renderAdmin()
-    } 
-    catch(e) {}
+    try { renderAdmin(); } catch(e) {}
   } catch(e) {
     console.warn('Offline o errore:', e);
   }
