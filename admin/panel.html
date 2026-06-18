@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="s.css">
+  <script src="../script/fetch_cf.js"></script>
+  <title>Admin</title>
+  
+</head>
+<body>
+
+<!-- PANEL -->
+<div id="panel">
+
+  <!-- nomignoli -->
+  <div class="card">
+    <div class="card-title">Nomignoli</div>
+    <div class="nick-list" id="nick-list"></div>
+    <div class="nick-add-row">
+      <input type="text" id="nick-input" />
+      <button class="btn-small" onclick="addNick()">Aggiungi</button>
+    </div>
+    <button class="btn btn-primary" onclick="saveNicks()">Salva nomignoli</button>
+    <div id="nick-status" class="status-msg"></div>
+  </div>
+
+  <!-- nuovo messaggio -->
+  <div class="card">
+    <div class="card-title">Aggiungi un motivo</div>
+    <div>
+      <input type="date" id="new-date" />
+    </div>
+    <div>
+      <textarea id="new-text" placeholder="Perche..."></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="addMessage()">Salva messaggio</button>
+    <div id="add-status" class="status-msg"></div>
+  </div>
+
+  <!-- lista messaggi -->
+  <div class="card">
+    <div class="card-title">Messaggi programmati</div>
+    <div class="msg-list" id="msg-list"></div>
+  </div>
+
+</div>
+
+<script>
+let appData = { nicknames: [], messages: {} };
+let dataFileSha = null;
+async function saveData(statusId) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'update data', content, sha: dataFileSha })
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    dataFileSha = json.content.sha;
+    showStatus(statusId, 'Salvato', 'ok');
+  } catch(e) { showStatus(statusId, 'Errore nel salvataggio', 'err'); }
+}
+
+// ── ADMIN UI ──────────────────────────────────────────────────────────
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function formatDate(str) { const [y,m,d] = str.split('-'); return `${d}/${m}/${y}`; }
+
+function renderAdmin() {
+  // nomignoli
+  const nickList = document.getElementById('nick-list');
+  nickList.innerHTML = '';
+  (appData.nicknames || []).forEach((n, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'nick-chip';
+    chip.innerHTML = `${n}<button onclick="removeNick(${i})">x</button>`;
+    nickList.appendChild(chip);
+  });
+
+  document.getElementById('new-date').value = todayKey();
+
+  // messaggi
+  const msgList = document.getElementById('msg-list');
+  msgList.innerHTML = '';
+  const keys = Object.keys(appData.messages || {}).sort().reverse();
+  if (!keys.length) { msgList.innerHTML = '<p class="empty-msg">Nessun messaggio ancora.</p>'; return; }
+  keys.forEach(k => {
+    const el = document.createElement('div');
+    el.className = 'msg-item';
+    el.innerHTML = `<div class="msg-item-left">
+        <div class="msg-item-date">${formatDate(k)}</div>
+        <div class="msg-item-text">${appData.messages[k]}</div>
+      </div>
+      <button class="btn-danger" onclick="deleteMsg('${k}')">Elimina</button>`;
+    msgList.appendChild(el);
+  });
+}
+
+function addNick() {
+  const input = document.getElementById('nick-input');
+  const val = input.value.trim(); if (!val) return;
+  if (!appData.nicknames) appData.nicknames = [];
+  appData.nicknames.push(val); input.value = ''; renderAdmin();
+}
+function removeNick(i) { appData.nicknames.splice(i,1); renderAdmin(); }
+async function saveNicks() { await saveData('nick-status'); }
+
+async function addMessage() {
+  const date = document.getElementById('new-date').value;
+  const text = document.getElementById('new-text').value.trim();
+  if (!date || !text) { showStatus('add-status','Compila data e testo','err'); return; }
+  if (!appData.messages) appData.messages = {};
+  appData.messages[date] = text;
+  document.getElementById('new-text').value = '';
+  await saveData('add-status'); renderAdmin();
+}
+
+async function deleteMsg(key) {
+  if (!confirm(`Eliminare il messaggio del ${formatDate(key)}?`)) return;
+  delete appData.messages[key];
+  await saveData('add-status'); renderAdmin();
+}
+
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = `status-msg ${type}`;
+  setTimeout(() => { el.className = 'status-msg'; }, 3000);
+}
+
+</script>
+</body>
+</html>

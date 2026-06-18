@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <link rel="stylesheet" href="s.css">
+  <script src="../script/fetch_cf.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Motivo del giorno</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Per Bea" />
+  
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-greeting">Ei <span id="welcome-name">amoree</span></div>
+    <div class="header-date" id="header-date"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" id="card-body"></div>
+    <div class="card-footer">
+      <span class="timer-label">Prossimo messaggio tra</span>
+      <span class="timer-value" id="global-timer">--:--:--</span>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <a class="link-btn" href="../storico/index.html">messaggi passati</a>
+  </div>
+
+</div>
+
+<script>
+
+let appData = { nicknames: {}, messages: {} };
+let dataFileSha = null;
+let revealedToday = false;
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function tomorrowKey() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function formatDate(str) { const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; }
+
+
+// ── TIMER (always on) ────────────────────────────────────────────────
+function startGlobalTimer() {
+  const tick = () => {
+    const el = document.getElementById('global-timer');
+    if (!el) return;
+    const now = new Date();
+    const next = new Date(now);
+    if(now.getHours() >= 10)
+      next.setDate(next.getDate() + 1);
+    next.setHours(10, 0, 0, 0);
+    const diff = next - now;
+    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+    el.textContent = `${h}:${m}:${s}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── CARD ──────────────────────────────────────────────────────────────
+function renderCard() {
+  const today = todayKey();
+  const todayMsg = (appData.messages || {})[today];
+  const body = document.getElementById('card-body');
+
+  if (!todayMsg) {
+    body.innerHTML = `
+      <div style="text-align:center; color:var(--muted); font-size:15px; line-height:1.6">
+        Amore se leggi questo non ho messo niente scusami :(<br>Hai il permesso di insultarmi
+      </div>`;
+  } else if (revealedToday) {
+    renderRevealed(body, todayMsg);
+  } else {
+    renderGift(body, todayMsg);
+  }
+}
+
+function renderGift(container, msg) {
+  window._pendingMsg = msg;
+  // Iniettiamo sia il regalo (sopra) che il testo (sotto, nascosto)
+  container.innerHTML = `
+    <div class="gift-container" id="gift-box" onclick="openGift()">
+      <!-- Nastri e Fiocco -->
+      <div class="ribbon-vertical"></div>
+      <div class="ribbon-horizontal"></div>
+      <div class="gift-bow-center">
+        <div class="bow-left"></div>
+        <div class="bow-right"></div>
+        <div class="bow-knot"></div>
+      </div>
+      
+      <!-- Testo che appare dopo -->
+      <div class="gift-content-hidden">
+        <div class="revealed-text">${msg}</div>
+      </div>
+    </div>
+    <div class="gift-hint" id="gift-hint">Tocca il pacchetto per aprirlo</div>
+  `;
+}
+
+function openGift() {
+  const giftBox = document.getElementById('gift-box');
+  const hint = document.getElementById('gift-hint');
+  
+  if (!giftBox) return;
+  
+  // Disabilita il click per evitare doppie animazioni
+  giftBox.onclick = null;
+  if (hint) hint.style.opacity = '0';
+
+  // Attiva l'animazione di scompattamento
+  giftBox.classList.add('is-opening');
+
+  // Dopo che l'animazione è finita, rendi lo stato persistente
+  setTimeout(() => {
+    revealedToday = true;
+    renderRevealed(document.getElementById('card-body'), window._pendingMsg);
+  }, 1000); // Durata dell'animazione CSS
+}
+
+function renderRevealed(container, msg) {
+  container.innerHTML = `
+    <div class="revealed-state">
+      <div class="revealed-text">${msg}</div>
+    </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function init() {
+  await loadData();
+
+  const nicks = appData.nicknames?.length ? appData.nicknames : ['Bea'];
+  document.getElementById('welcome-name').textContent = nicks[Math.floor(Math.random() * nicks.length)];
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+  renderCard();
+  startGlobalTimer();
+}
+
+init();
+</script>
+</body>
+</html>
