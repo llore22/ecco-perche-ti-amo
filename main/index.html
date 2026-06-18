@@ -20,11 +20,33 @@
     <div class="header-date" id="header-date"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="main-card">
+    <!-- Contenuto sempre presente sotto il regalo -->
     <div class="card-body" id="card-body"></div>
     <div class="card-footer">
       <span class="timer-label">Prossimo messaggio tra</span>
       <span class="timer-value" id="global-timer">--:--:--</span>
+    </div>
+
+    <!-- Overlay regalo: copre tutta la card, sparisce all'apertura -->
+    <div class="gift-overlay" id="giftOverlay" onclick="openGift()">
+      <div class="gift-paper tl"></div>
+      <div class="gift-paper tr"></div>
+      <div class="gift-paper bl"></div>
+      <div class="gift-paper br"></div>
+      <div class="gift-ribbon-h"></div>
+      <div class="gift-ribbon-v"></div>
+      <div class="gift-bow">
+        <svg viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 28 C30 20, 8 14, 4 22 C0 30, 18 36, 40 28Z" fill="#ff8fab" opacity="0.9"/>
+          <path d="M40 28 C50 20, 72 14, 76 22 C80 30, 62 36, 40 28Z" fill="#ff8fab" opacity="0.9"/>
+          <path d="M40 25 C32 14, 10 6, 6 14 C2 22, 22 28, 40 25Z" fill="#ffb3c6" opacity="0.9"/>
+          <path d="M40 25 C48 14, 70 6, 74 14 C78 22, 58 28, 40 25Z" fill="#ffb3c6" opacity="0.9"/>
+          <circle cx="40" cy="26" r="7" fill="#c4637a"/>
+          <rect x="37" y="26" width="6" height="18" fill="#c4637a" rx="3"/>
+        </svg>
+      </div>
+      <div class="gift-hint">Tocca per aprire</div>
     </div>
   </div>
 
