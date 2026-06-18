@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <link rel="icon" type="image/png" sizes="32x32" href="../heart.png">
-  <link rel="apple-touch-icon" sizes="160x160" href="../heart.png">
   <link rel="stylesheet" href="s.css">
+  <script src="../script/fetch_cf.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>messaggio del giorno</title>
+  <title>Motivo del giorno</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Per Bea" />
@@ -45,6 +44,7 @@
           <rect x="37" y="26" width="6" height="18" fill="#c4637a" rx="3"/>
         </svg>
       </div>
+      <div class="gift-hint">Tocca per aprire</div>
     </div>
   </div>
 
@@ -55,24 +55,52 @@
 </div>
 
 <script>
-let appData = { nicknames: {}, messages: {} };
-let dataFileSha = null;
+
+let appData = { nicknames: [], messages: {}, openedDates: [] };
 let revealedToday = false;
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
-function tomorrowKey() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
-function formatDate(str) { const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; }
+async function saveData(statusId) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  
+  // Se l'elemento di status non esiste (es. quando elimini un messaggio), usiamo un fallback sicuro
+  const actualStatusId = document.getElementById(statusId) ? statusId : 'add-status';
 
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        content: content,
+        sha: dataFileSha 
+      })
+    });
 
-// ── TIMER (always on) ────────────────────────────────────────────────
+    if (!res.ok) throw new Error(await res.text());
+    
+    const json = await res.json();
+    
+    // Aggiorna lo SHA globale recuperandolo dalla risposta corretta del Worker
+    if (json.content && json.content.sha) {
+      dataFileSha = json.content.sha;
+    } else if (json.sha) {
+      dataFileSha = json.sha;
+    }
+    
+    showStatus(actualStatusId, 'Salvato', 'ok');
+  } catch(e) { 
+    console.error("Errore Worker:", e);
+    showStatus(actualStatusId, 'Errore nel salvataggio', 'err'); 
+  }
+}
+
 function startGlobalTimer() {
   const tick = () => {
     const el = document.getElementById('global-timer');
     if (!el) return;
     const now = new Date();
     const next = new Date(now);
-    if(now.getHours() >= 10)
-      next.setDate(next.getDate() + 1);
+    if (now.getHours() >= 10) next.setDate(next.getDate() + 1);
     next.setHours(10, 0, 0, 0);
     const diff = next - now;
     const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
@@ -83,20 +111,6 @@ function startGlobalTimer() {
   tick();
   setInterval(tick, 1000);
 }
-
-async function saveData() {
-  try {
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, sha: dataFileSha })
-    });
-    const json = await res.json();
-    if (json.content?.sha) dataFileSha = json.content.sha;
-  } catch(e) { console.warn('Errore salvataggio:', e); }
-}
-// ── CARD ──────────────────────────────────────────────────────────────
 
 function renderCard() {
   const today = todayKey();
@@ -142,19 +156,24 @@ function openGift() {
   }, 700);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────
 async function init() {
   await loadData();
 
-  const nicks = appData.nicknames?.length ? appData.nicknames : ['Bea'];
-  document.getElementById('welcome-name').textContent = nicks[Math.floor(Math.random() * nicks.length)];
-  document.getElementById('header-date').textContent = new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+  appData.openedDates = Array.isArray(appData.openedDates) ? appData.openedDates : [];
+  revealedToday = appData.openedDates.includes(todayKey());
+
+  const nicks = Array.isArray(appData.nicknames) && appData.nicknames.length
+    ? appData.nicknames : ['Bea'];
+  document.getElementById('welcome-name').textContent =
+    nicks[Math.floor(Math.random() * nicks.length)];
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
   renderCard();
   startGlobalTimer();
 }
 
 init();
 </script>
-<script src="../script/fetch_cf.js"></script>
 </body>
 </html>
