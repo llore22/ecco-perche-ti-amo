@@ -176,10 +176,20 @@ async function init() {
   window.appData.openedDates = Array.isArray(window.appData.openedDates) ? window.appData.openedDates : [];
   revealedToday = window.appData.openedDates.includes(todayKey());
 
-  const nicks = Array.isArray(window.appData.nicknames) && window.appData.nicknames.length
-    ? window.appData.nicknames
-    : ["Amore"]; // Fallback se non ci sono ancora nomignoli salvati
+  // Sostituito il ternario con un IF/ELSE classico, a prova di errore di sintassi
+  let nicks = ["Amore"]; 
+  if (Array.isArray(window.appData.nicknames) && window.appData.nicknames.length > 0) {
+    nicks = window.appData.nicknames;
+  }
     
-  document.getElementById('welcome-name
+  document.getElementById('welcome-name').textContent =
+    nicks[Math.floor(Math.random() * nicks.length)];
+    
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+  renderCard();
+  startGlobalTimer();
+}
 </body>
 </html>
