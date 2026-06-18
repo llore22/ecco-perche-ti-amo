@@ -190,7 +190,7 @@ async function init() {
     
   document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
-
+  window.addEventListener('DOMContentLoaded', init);
   renderCard();
   startGlobalTimer();
 }
