@@ -59,7 +59,7 @@ async function saveData(statusId) {
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
   
   try {
-    const res = await fetch(WORKER_URL, {
+    const res = await fetch(window.WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
