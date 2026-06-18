@@ -43,3 +43,20 @@ async function createDataFile() {
     console.warn("Errore durante la creazione:", e);
   }
 }
+async function saveData(statusId) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${DATA_FILE}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'update data', content, sha: dataFileSha })
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    dataFileSha = json.content.sha;
+    showStatus(statusId, 'Salvato', 'ok');
+  } catch(e) { showStatus(statusId, 'Errore nel salvataggio', 'err'); }
+}
