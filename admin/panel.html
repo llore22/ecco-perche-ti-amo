@@ -48,15 +48,16 @@
 </div>
 
 <script>
-let appData = { nicknames: [], messages: {} };
-let dataFileSha = null;
+// Rimosso dataFileSha da qui perché deve essere condiviso globalmente con fetch_cf.js
+// Inizializziamo appData se non è ancora pronto
+window.appData = window.appData || { nicknames: [], messages: {} };
 
-// Sostituisci questo indirizzo con l'URL esatto del tuo Cloudflare Worker
 const WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev"; 
 
-// 1. SALVATAGGIO TRAMITE WORKER (Risolve l'errore di salvataggio)
+// SALVATAGGIO TRAMITE WORKER
 async function saveData(statusId) {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  // Prepariamo la stringa base64 in modo sicuro per i caratteri speciali
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
   
   try {
     const res = await fetch(WORKER_URL, {
@@ -64,18 +65,18 @@ async function saveData(statusId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         content: content,
-        sha: dataFileSha 
+        sha: window.dataFileSha // Usa la variabile globale condivisa
       })
     });
 
     if (!res.ok) throw new Error(await res.text());
     const json = await res.json();
     
-    // Aggiorna lo SHA ricevuto dal server per i prossimi salvataggi
+    // Aggiorna lo SHA globale ricevuto dal server
     if (json.content && json.content.sha) {
-      dataFileSha = json.content.sha;
+      window.dataFileSha = json.content.sha;
     } else if (json.sha) {
-      dataFileSha = json.sha;
+      window.dataFileSha = json.sha;
     }
     
     showStatus(statusId, 'Salvato con successo!', 'ok');
@@ -87,14 +88,13 @@ async function saveData(statusId) {
 
 // ── ADMIN UI ──────────────────────────────────────────────────────────
 function todayKey() { return new Date().toISOString().split('T')[0]; }
-function formatDate(str) { if(!str) return ''; const [y,m,d] = str.split('-'); return `${d}/${m}/${y}`; }
+function formatDate(str) { if(!str) return ''; const [y,m,d] = str.split('-'); return `${d}/${m}/${y}`;}
 
 function renderAdmin() {
-  // Nomignoli
   const nickList = document.getElementById('nick-list');
   if (nickList) {
     nickList.innerHTML = '';
-    (appData.nicknames || []).forEach((n, i) => {
+    (window.appData.nicknames || []).forEach((n, i) => {
       const chip = document.createElement('div');
       chip.className = 'nick-chip';
       chip.innerHTML = `${n}<button onclick="removeNick(${i})">x</button>`;
@@ -105,11 +105,10 @@ function renderAdmin() {
   const dateInput = document.getElementById('new-date');
   if (dateInput && !dateInput.value) dateInput.value = todayKey();
 
-  // Messaggi
   const msgList = document.getElementById('msg-list');
   if (msgList) {
     msgList.innerHTML = '';
-    const keys = Object.keys(appData.messages || {}).sort().reverse();
+    const keys = Object.keys(window.appData.messages || {}).sort().reverse();
     if (!keys.length) { 
       msgList.innerHTML = '<p class="empty-msg">Nessun messaggio ancora.</p>'; 
       return; 
@@ -119,7 +118,7 @@ function renderAdmin() {
       el.className = 'msg-item';
       el.innerHTML = `<div class="msg-item-left">
           <div class="msg-item-date">${formatDate(k)}</div>
-          <div class="msg-item-text">${appData.messages[k]}</div>
+          <div class="msg-item-text">${window.appData.messages[k]}</div>
         </div>
         <button class="btn-danger" onclick="deleteMsg('${k}')">Elimina</button>`;
       msgList.appendChild(el);
@@ -130,19 +129,19 @@ function renderAdmin() {
 function addNick() {
   const input = document.getElementById('nick-input');
   const val = input.value.trim(); if (!val) return;
-  if (!appData.nicknames) appData.nicknames = [];
-  appData.nicknames.push(val); input.value = ''; renderAdmin();
+  if (!window.appData.nicknames) window.appData.nicknames = [];
+  window.appData.nicknames.push(val); input.value = ''; renderAdmin();
 }
 
-function removeNick(i) { appData.nicknames.splice(i,1); renderAdmin(); }
+function removeNick(i) { window.appData.nicknames.splice(i,1); renderAdmin(); }
 async function saveNicks() { await saveData('nick-status'); }
 
 async function addMessage() {
   const date = document.getElementById('new-date').value;
   const text = document.getElementById('new-text').value.trim();
   if (!date || !text) { showStatus('add-status','Compila data e testo','err'); return; }
-  if (!appData.messages) appData.messages = {};
-  appData.messages[date] = text;
+  if (!window.appData.messages) window.appData.messages = {};
+  window.appData.messages[date] = text;
   document.getElementById('new-text').value = '';
   await saveData('add-status'); 
   renderAdmin();
@@ -150,7 +149,7 @@ async function addMessage() {
 
 async function deleteMsg(key) {
   if (!confirm(`Eliminare il messaggio del ${formatDate(key)}?`)) return;
-  delete appData.messages[key];
+  delete window.appData.messages[key];
   await saveData('add-status'); 
   renderAdmin();
 }
@@ -162,10 +161,9 @@ function showStatus(id, msg, type) {
   setTimeout(() => { el.className = 'status-msg'; }, 3000);
 }
 
-// 2. INIZIALIZZAZIONE ALL'AVVIO (Recupera i dati esistenti e lo SHA)
 async function initAdmin() {
   if (typeof loadData === 'function') {
-    await loadData(); // Sfrutta la funzione del tuo script esterno fetch_cf.js
+    await loadData(); 
     renderAdmin();
   } else {
     console.error("Funzione loadData non trovata. Controlla fetch_cf.js");
