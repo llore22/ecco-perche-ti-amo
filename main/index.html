@@ -92,67 +92,44 @@ function renderCard() {
   const today = todayKey();
   const todayMsg = (appData.messages || {})[today];
   const body = document.getElementById('card-body');
+  const overlay = document.getElementById('giftOverlay');
 
   if (!todayMsg) {
     body.innerHTML = `
       <div style="text-align:center; color:var(--muted); font-size:15px; line-height:1.6">
-        Amore scusa se leggi questo non ho messo niente <br>Hai il permesso di insultarmi
+        Amore se leggi questo non ho messo niente scusami :(<br>Hai il permesso di insultarmi
       </div>`;
-  } else if (revealedToday) {
-    renderRevealed(body, todayMsg);
-  } else {
-    renderGift(body, todayMsg);
+    if (overlay) overlay.style.display = 'none';
+    return;
+  }
+
+  // Messaggio già nel DOM, sotto all'overlay
+  body.innerHTML = `<div class="revealed-text">${todayMsg}</div>`;
+
+  // Mostra l'overlay solo se non ancora aperto oggi
+  if (!revealedToday && overlay) {
+    overlay.style.display = 'block';
   }
 }
 
-function renderGift(container, msg) {
-  window._pendingMsg = msg;
-  // Iniettiamo sia il regalo (sopra) che il testo (sotto, nascosto)
-  container.innerHTML = `
-    <div class="gift-container" id="gift-box" onclick="openGift()">
-      <!-- Nastri e Fiocco -->
-      <div class="ribbon-vertical"></div>
-      <div class="ribbon-horizontal"></div>
-      <div class="gift-bow-center">
-        <div class="bow-left"></div>
-        <div class="bow-right"></div>
-        <div class="bow-knot"></div>
-      </div>
-      
-      <!-- Testo che appare dopo -->
-      <div class="gift-content-hidden">
-        <div class="revealed-text">${msg}</div>
-      </div>
-    </div>
-    <div class="gift-hint" id="gift-hint">Tocca il pacchetto per aprirlo</div>
-  `;
-}
-
 function openGift() {
-  const giftBox = document.getElementById('gift-box');
-  const hint = document.getElementById('gift-hint');
-  
-  if (!giftBox) return;
-  
-  // Disabilita il click per evitare doppie animazioni
-  giftBox.onclick = null;
-  if (hint) hint.style.opacity = '0';
+  const overlay = document.getElementById('giftOverlay');
+  if (!overlay || overlay.classList.contains('opening')) return;
 
-  // Attiva l'animazione di scompattamento
-  giftBox.classList.add('is-opening');
+  overlay.classList.add('opening');
+  overlay.onclick = null;
 
-  // Dopo che l'animazione è finita, rendi lo stato persistente
+  // Dopo l'animazione dei quadranti, fade out dell'overlay
   setTimeout(() => {
+    overlay.classList.add('done');
     revealedToday = true;
-    renderRevealed(document.getElementById('card-body'), window._pendingMsg);
-  }, 1000); // Durata dell'animazione CSS
-}
-
-function renderRevealed(container, msg) {
-  container.innerHTML = `
-    <div class="revealed-state">
-      <div class="revealed-text">${msg}</div>
-    </div>`;
+    if (!Array.isArray(appData.openedDates)) appData.openedDates = [];
+    if (!appData.openedDates.includes(todayKey())) {
+      appData.openedDates.push(todayKey());
+      saveData();
+    }
+    setTimeout(() => overlay.remove(), 400);
+  }, 700);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
