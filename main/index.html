@@ -163,7 +163,7 @@ async function init() {
   revealedToday = appData.openedDates.includes(todayKey());
 
   const nicks = Array.isArray(appData.nicknames) && appData.nicknames.length
-    ? appData.nicknames : ['Bea'];
+    ? appData.nicknames;
   document.getElementById('welcome-name').textContent =
     nicks[Math.floor(Math.random() * nicks.length)];
   document.getElementById('header-date').textContent =
