@@ -6,7 +6,7 @@ window.appData = { nicknames: [], messages: {} };
 
 async function loadData() {
   try {
-    const res = await fetch(WORKER_URL, { method: 'GET' });
+    const res = await fetch(window.WORKER_URL, { method: 'GET' });
     
     if (res.status === 404) { 
       await createDataFile(); 
@@ -15,35 +15,31 @@ async function loadData() {
     
     const json = await res.json();
     
-    // Assegnazione all'oggetto globale window
     window.dataFileSha = json.sha; 
-    window.appData = json.content || {};
+    
+    // CORREZIONE STRUTTURA: Se json ha un campo 'content' che è un oggetto, usa quello.
+    // Se 'json' è già l'oggetto con i messaggi, usa direttamente json.
+    if (json.content && typeof json.content === 'object' && !Array.isArray(json.content)) {
+      window.appData = json.content;
+    } else {
+      window.appData = json || {};
+    }
 
-    // Normalizza la struttura
+    // Normalizzazione di sicurezza
     if (!Array.isArray(window.appData.nicknames)) window.appData.nicknames = [];
     if (typeof window.appData.messages !== 'object' || Array.isArray(window.appData.messages)) window.appData.messages = {};
+    if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
 
-    console.log("Dati caricati con successo!", window.dataFileSha);
-    if (typeof renderAdmin === 'function') renderAdmin();
-  } catch(e) {
-    console.warn('Offline o errore nel caricamento:', e);
-  }
-}
+    console.log("Dati scaricati e normalizzati:", window.appData);
 
-async function createDataFile() {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
-  
-  try {
-    const res = await fetch(WORKER_URL, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content }) 
-    });
+    // CORREZIONE NOTIFICA: Controlla sia la funzione globale che quella appesa a window
+    if (typeof window.renderAdmin === 'function') {
+      window.renderAdmin();
+    } else if (typeof renderAdmin === 'function') {
+      renderAdmin();
+    }
     
-    const json = await res.json();
-    window.dataFileSha = json.content?.sha || json.sha;
-    console.log("Nuovo file creato sul server!");
-  } catch(e) { 
-    console.warn("Errore durante la creazione del file:", e); 
+  } catch(e) {
+    console.warn('Errore nel caricamento o nella decodifica:', e);
   }
 }
