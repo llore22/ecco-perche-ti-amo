@@ -55,24 +55,28 @@
 </div>
 
 <script>
-
-let appData = { nicknames: [], messages: {}, openedDates: [] };
+// Rimosso 'let appData' per evitare conflitti con fetch_cf.js. 
+// Usiamo direttamente l'oggetto condiviso su window.
+window.appData = window.appData || { nicknames: [], messages: {}, openedDates: [] };
 let revealedToday = false;
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
+
 async function saveData(statusId) {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  // Prepariamo il contenuto prendendolo in modo sicuro da window.appData
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
   
-  // Se l'elemento di status non esiste (es. quando elimini un messaggio), usiamo un fallback sicuro
+  // Se l'elemento di status non esiste, usiamo un fallback sicuro
   const actualStatusId = document.getElementById(statusId) ? statusId : 'add-status';
 
   try {
-    const res = await fetch(WORKER_URL, {
+    // CORRETTO: Uso esplicito di window.WORKER_URL
+    const res = await fetch(window.WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         content: content,
-        sha: dataFileSha 
+        sha: window.dataFileSha // CORRETTO: Uso esplicito di window.dataFileSha
       })
     });
 
@@ -82,15 +86,19 @@ async function saveData(statusId) {
     
     // Aggiorna lo SHA globale recuperandolo dalla risposta corretta del Worker
     if (json.content && json.content.sha) {
-      dataFileSha = json.content.sha;
+      window.dataFileSha = json.content.sha;
     } else if (json.sha) {
-      dataFileSha = json.sha;
+      window.dataFileSha = json.sha;
     }
     
-    showStatus(actualStatusId, 'Salvato', 'ok');
+    if (typeof showStatus === 'function') {
+      showStatus(actualStatusId, 'Salvato', 'ok');
+    }
   } catch(e) { 
     console.error("Errore Worker:", e);
-    showStatus(actualStatusId, 'Errore nel salvataggio', 'err'); 
+    if (typeof showStatus === 'function') {
+      showStatus(actualStatusId, 'Errore nel salvataggio', 'err'); 
+    }
   }
 }
 
@@ -112,9 +120,11 @@ function startGlobalTimer() {
   setInterval(tick, 1000);
 }
 
+// Rinominata a renderCard per l'HTML, ma agganciata anche a window per fetch_cf.js
 function renderCard() {
   const today = todayKey();
-  const todayMsg = (appData.messages || {})[today];
+  // Usa window.appData
+  const todayMsg = (window.appData.messages || {})[today];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
 
@@ -135,6 +145,8 @@ function renderCard() {
     overlay.style.display = 'block';
   }
 }
+// Esponiamo la funzione a fetch_cf.js affinché possa chiamarla al termine del caricamento
+window.renderAdmin = renderCard; 
 
 function openGift() {
   const overlay = document.getElementById('giftOverlay');
@@ -147,9 +159,9 @@ function openGift() {
   setTimeout(() => {
     overlay.classList.add('done');
     revealedToday = true;
-    if (!Array.isArray(appData.openedDates)) appData.openedDates = [];
-    if (!appData.openedDates.includes(todayKey())) {
-      appData.openedDates.push(todayKey());
+    if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
+    if (!window.appData.openedDates.includes(todayKey())) {
+      window.appData.openedDates.push(todayKey());
       saveData();
     }
     setTimeout(() => overlay.remove(), 400);
@@ -157,23 +169,17 @@ function openGift() {
 }
 
 async function init() {
-  await loadData();
+  if (typeof loadData === 'function') {
+    await loadData();
+  }
 
-  appData.openedDates = Array.isArray(appData.openedDates) ? appData.openedDates : [];
-  revealedToday = appData.openedDates.includes(todayKey());
+  window.appData.openedDates = Array.isArray(window.appData.openedDates) ? window.appData.openedDates : [];
+  revealedToday = window.appData.openedDates.includes(todayKey());
 
-  const nicks = Array.isArray(appData.nicknames) && appData.nicknames.length
-    ? appData.nicknames;
-  document.getElementById('welcome-name').textContent =
-    nicks[Math.floor(Math.random() * nicks.length)];
-  document.getElementById('header-date').textContent =
-    new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
-
-  renderCard();
-  startGlobalTimer();
-}
-
-init();
-</script>
+  const nicks = Array.isArray(window.appData.nicknames) && window.appData.nicknames.length
+    ? window.appData.nicknames
+    : ["Amore"]; // Fallback se non ci sono ancora nomignoli salvati
+    
+  document.getElementById('welcome-name
 </body>
 </html>
