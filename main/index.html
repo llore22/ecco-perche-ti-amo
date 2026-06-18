@@ -169,17 +169,21 @@ function openGift() {
 }
 
 async function init() {
+  console.log("1. Init partita correttamente!");
+  
   if (typeof loadData === 'function') {
+    console.log("2. Chiamo loadData()...");
     await loadData();
+    console.log("3. loadData() terminata. Dati attuali in window.appData:", window.appData);
+  } else {
+    console.error("ERRORE: La funzione loadData non è visibile da index.html!");
   }
 
-  // Controllo sicuro per openedDates
   if (!Array.isArray(window.appData.openedDates)) {
     window.appData.openedDates = [];
   }
   revealedToday = window.appData.openedDates.includes(todayKey());
 
-  // Sostituito il ternario con un IF/ELSE lineare a prova di errore
   let nicks = ["Amore"]; 
   if (Array.isArray(window.appData.nicknames) && window.appData.nicknames.length > 0) {
     nicks = window.appData.nicknames;
@@ -190,9 +194,12 @@ async function init() {
     
   document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
-  window.addEventListener('DOMContentLoaded', init);
+
+  console.log("4. Chiamo renderCard()...");
   renderCard();
   startGlobalTimer();
 }
+
+window.addEventListener('DOMContentLoaded', init);
 </body>
 </html>
