@@ -1,4 +1,4 @@
-const WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev"; 
+window.WORKER_URL = window.WORKER_URL || "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 
 // Inizializzazione variabili globali esplicite
 window.dataFileSha = null;
