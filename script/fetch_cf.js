@@ -42,4 +42,3 @@ async function createDataFile() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', loadData);
