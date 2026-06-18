@@ -51,7 +51,7 @@
 // Rimosso dataFileSha da qui perché deve essere condiviso globalmente con fetch_cf.js
 // Inizializziamo appData se non è ancora pronto
 window.appData = window.appData || { nicknames: [], messages: {} };
-
+window.WORKER_URL = window.WORKER_URL || "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 
 // SALVATAGGIO TRAMITE WORKER
 async function saveData(statusId) {
