@@ -1,45 +1,47 @@
-const WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev/";
-var dataFileSha = null;
 
+const WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev/"; 
 async function loadData() {
   try {
     const res = await fetch(WORKER_URL, { method: 'GET' });
-
-    if (res.status === 404) {
-      await createDataFile();
-      return;
+    
+    if (res.status === 404) { 
+      await createDataFile(); 
+      return; 
     }
-
+    
     const json = await res.json();
-    dataFileSha = json.sha;
+    dataFileSha = json.sha; 
     appData = json.content;
 
-    if (!Array.isArray(appData.nicknames)) {
-      appData.nicknames = Object.values(appData.nicknames || {});
-    }
-    if (!appData.messages) appData.messages = {};
-    if (!Array.isArray(appData.openedDates)) appData.openedDates = [];
+  // Normalizza la struttura
+  if (!Array.isArray(appData.nicknames)) appData.nicknames = [];
+  if (typeof appData.messages !== 'object' || Array.isArray(appData.messages)) appData.messages = {};
 
-    console.log("Dati caricati!");
-    try { renderAdmin(); } catch(e) {}
-
+console.log("Dati caricati!");
+   if (typeof renderAdmin === 'function') renderAdmin();
   } catch(e) {
     console.warn('Offline o errore:', e);
   }
 }
 
 async function createDataFile() {
+  // Prepariamo il contenuto da salvare (questo rimane uguale)
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(appData, null, 2))));
+  
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
+    // Chiamiamo il Worker inviando il contenuto nel body della richiesta
+    const res = await fetch(WORKER_URL, { 
+      method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content: content }) 
     });
+    
     const json = await res.json();
     dataFileSha = json.content?.sha;
-    console.log("File creato con successo!");
-  } catch(e) {
-    console.warn("Errore durante la creazione:", e);
+    console.log("File salvato con successo!");
+  } catch(e) { 
+    console.warn("Errore durante il salvataggio:", e); 
   }
 }
+
+//window.addEventListener('DOMContentLoaded', loadData);
