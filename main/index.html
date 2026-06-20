@@ -216,7 +216,7 @@ async function init() {
   if (!Array.isArray(window.appData.openedDates)) {
     window.appData.openedDates = [];
   }
-  revealedToday = window.appData.openedDates.includes(todayKey());
+  revealed = new Date().getHours() >= 10 ? window.appData.openedDates.includes(todayKey()) : window.appData.openedDates.includes(yesterdayKey());
 
   let nicks = ["Amore"]; 
   if (Array.isArray(window.appData.nicknames) && window.appData.nicknames.length > 0) {
