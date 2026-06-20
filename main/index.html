@@ -160,7 +160,7 @@ function renderCard() {
   
   // Determina quale chiave usare in base all'orario (prima delle 10 mostra ieri)
   let today = todayKey(); 
-  if (hour < 10) {
+  if (hour < 11) {
     const ieri = new Date(oggi);
     ieri.setDate(oggi.getDate() - 1);
     today = formatDateKey(ieri); // Assicurati che formatDateKey sia la funzione che genera la stringa della chiave (es. YYYY-MM-DD)
