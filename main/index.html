@@ -164,7 +164,7 @@ function renderCard() {
   
   let today = todayKey();
   let yesterday = yesterdayKey();
-  const msg = new Date().getHours >= 10? (window.appData.messages || {})[today] : (window.appData.messages || {})[yesterday];
+  const msg = new Date().getHours() >= 10 ? (window.appData.messages || {})[today] : (window.appData.messages || {})[yesterday];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
 
