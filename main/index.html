@@ -156,7 +156,13 @@ function startGlobalTimer() {
 
 function renderCard() {
   const today = todayKey();
-  const todayMsg = (window.appData.messages || {})[today];
+  oggi = (new Date());
+  hour = oggi.getHours();
+  ieri.setDate(oggi.getDate() - 1);
+  if(hour >= 10)
+    const todayMsg = (window.appData.messages || {})[today];
+  else
+    const todayMsg = (window.appData.messages || {})[ieri];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
 
