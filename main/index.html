@@ -158,14 +158,7 @@ function renderCard() {
   const oggi = new Date();
   const hour = oggi.getHours();
   
-  // Determina quale chiave usare in base all'orario (prima delle 10 mostra ieri)
-  let today = todayKey(); 
-  if (hour < 11) {
-    const ieri = new Date(oggi);
-    ieri.setDate(oggi.getDate() - 1);
-    today = formatDateKey(ieri); // Assicurati che formatDateKey sia la funzione che genera la stringa della chiave (es. YYYY-MM-DD)
-  }
-
+  let today = todayKey();
   const todayMsg = (window.appData.messages || {})[today];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
