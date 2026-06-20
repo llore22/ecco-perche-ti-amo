@@ -57,7 +57,7 @@
 window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 window.dataFileSha = null;
 window.appData = { nicknames: [], messages: {}, openedDates: [] };
-let revealedToday = false;
+let revealed = false;
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
 function yesterdayKey() {
@@ -177,9 +177,9 @@ function renderCard() {
     return;
   }
 
-  body.innerHTML = `<div class="revealed-text">${todayMsg}</div>`;
+  body.innerHTML = `<div class="revealed-text">${msg}</div>`;
 
-  if (!revealedToday && overlay) {
+  if (!revealed && overlay) {
     overlay.style.display = 'block';
   } else if (overlay) {
     overlay.remove(); // Se è già stato aperto oggi, rimuovi il regalo all'avvio
@@ -195,7 +195,7 @@ function openGift() {
 
   setTimeout(() => {
     overlay.classList.add('done');
-    revealedToday = true;
+    revealed = true;
     if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
     if (!window.appData.openedDates.includes(todayKey())) {
       window.appData.openedDates.push(todayKey());
