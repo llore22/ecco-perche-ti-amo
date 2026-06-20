@@ -60,7 +60,11 @@ window.appData = { nicknames: [], messages: {}, openedDates: [] };
 let revealedToday = false;
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
-
+function yesterdayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1); // Sottrae un giorno alla data corrente
+  return d.toISOString().split('T')[0];
+}
 // --- FUNZIONE CARICAMENTO DATI (Ex fetch_cf.js) ---
 async function loadData() {
   try {
@@ -159,7 +163,8 @@ function renderCard() {
   const hour = oggi.getHours();
   
   let today = todayKey();
-  const todayMsg = (window.appData.messages || {})[today];
+  let yesterday = yesterdayKey();
+  const msg = new Date().getHours >= 10? (window.appData.messages || {})[today] : (window.appData.messages || {})[yesterday];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
 
