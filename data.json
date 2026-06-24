@@ -9,7 +9,8 @@
     "2026-06-21": "Ti amo perché riesci sempre a farmi fare una bella risata❤️<div style=\"text-align: center; width: 100%; margin-top: 20px;\">\n    <a href=\"https://open.spotify.com/intl-it/track/76BWoWI8m8XEiUZWogaPEy?t=03:00\" target=\"_blank\" style=\"display: inline-block; background-color: rgb(255, 105, 180); color: white; padding: 12px 24px; text-decoration: none; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; border-radius: 25px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px; transition: background-color 0.3s;\" onmouseover=\"this.style.backgroundColor='#ff1493'\" onmouseout=\"this.style.backgroundColor='#ff69b4'\">\n        Premi qui\n    </a>\n</div>",
     "2026-06-22": "io ti amero sempre e comunque scemotta",
     "2026-06-23": "Ti amo perche non hai mai smesso di credere in noi❤️‍🩹",
-    "2026-06-24": "ti amo perché sei la ragazza migliore di tutte"
+    "2026-06-24": "ti amo perché sei la ragazza migliore di tutte",
+    "2026-06-25": "ti amo perché sei sempre così dannatamente stupenda❤️\n<div style=\"text-align: center; margin-top: 20px;\">\n  <p>Comunque, sei una stupidina?</p>\n  <button onclick=\"alert('Lo sapevo! ❤️')\" style=\"padding: 10px; background: green; color: white;\">Sì</button>\n  <button onmouseover=\"this.style.display='none';\" ontouchstart=\"this.style.display='none';\" style=\"padding: 10px; background: red; color: white;\">No</button>\n</div>"
   },
   "openedDates": [
     "2026-06-18",
