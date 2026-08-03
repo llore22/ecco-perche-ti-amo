@@ -1,33 +1,89 @@
+<!-- Percorso nel repo: storico/index.html -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <link rel="icon" type="image/png" href="../heart.png">
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="s.css">
-  <script src="../script/fetch_cf.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Storico dei messaggini</title>
-
 </head>
 <body>
   <div class="page">
-
     <div class="top-bar">
       <a class="back-btn" href="../main/index.html">Indietro</a>
     </div>
-
     <div style="width:100%;max-width:420px">
       <div class="page-title">I giorni scorsi</div>
     </div>
-
     <div class="loading" id="loading">Caricamento...</div>
     <div class="past-list" id="past-list" style="display:none"></div>
     <div class="empty-state" id="empty-state" style="display:none">Nessun messaggio passato ancora.</div>
-
   </div>
 
+<script>
+window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 
-// OTTENERE LE INFORMAZIONI
-<script src="../script/init.js"></script>
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function formatDate(str) { const [y, m, d] = str.split('-'); return `${d}/${m}/${y}`; }
+
+function applyTheme(appData) {
+  const t = (appData && appData.theme) || {};
+  const root = document.documentElement.style;
+  const map = {
+    bg: '--bg', surface: '--surface', surface2: '--surface2', border: '--border',
+    accent: '--accent', accentBg: '--accent-bg', text: '--text', muted: '--muted'
+  };
+  Object.keys(map).forEach(k => { if (t[k]) root.setProperty(map[k], t[k]); });
+}
+
+async function init() {
+  let appData = { messages: {}, replies: {} };
+
+  try {
+    const res = await fetch(window.WORKER_URL, { method: 'GET' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.messages) appData = json;
+      else if (json.content && typeof json.content === 'object') appData = json.content;
+      else if (json.content && typeof json.content === 'string') {
+        const decoded = decodeURIComponent(escape(atob(json.content.replace(/\s/g, ''))));
+        appData = JSON.parse(decoded);
+      }
+    }
+  } catch (e) {
+    console.warn('Errore durante il caricamento:', e);
+  }
+
+  applyTheme(appData);
+  document.getElementById('loading').style.display = 'none';
+
+  const today = todayKey();
+  const messages = appData.messages || {};
+  const replies = appData.replies || {};
+  const allKeys = Object.keys(messages).sort();
+  const past = allKeys.filter(k => k < today && messages[k]);
+
+  if (!past.length) {
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  const list = document.getElementById('past-list');
+  list.style.display = 'flex';
+  [...past].reverse().forEach(k => {
+    const idx = allKeys.indexOf(k) + 1;
+    const reply = replies[k];
+    const el = document.createElement('div');
+    el.className = 'past-item';
+    el.innerHTML = `<div class="past-item-meta">Giorno ${idx} &middot; ${formatDate(k)}</div>
+      <div class="past-item-text">${messages[k]}</div>
+      ${reply ? `<div class="past-item-reply">↳ ${reply}</div>` : ''}`;
+    list.appendChild(el);
+  });
+}
+
+init();
+</script>
 </body>
 </html>
