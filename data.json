@@ -107,5 +107,14 @@
   "replies": {
     "2026-08-03": "mwahhh"
   },
-  "theme": {}
+  "theme": {
+    "bg": "#ff7d7d",
+    "surface": "#ffc9e0",
+    "surface2": "#fdf2f4",
+    "border": "#f0cdd4",
+    "accent": "#e80000",
+    "accentBg": "#f7dde3",
+    "text": "#2d1a1f",
+    "muted": "#b08890"
+  }
 }
