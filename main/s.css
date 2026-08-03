@@ -1,3 +1,4 @@
+/* Percorso nel repo: main/s.css */
 :root {
   --bg:        #fce8ec;
   --surface:   #ffffff;
@@ -25,7 +26,7 @@ html, body {
 .page {
   min-height: 100vh;
   display: flex; flex-direction: column; align-items: center;
-  padding: max(env(safe-area-inset-top, 0px), 56px) 20px 48px;
+  padding: max(env(safe-area-inset-top, 0px), 40px) 20px 48px;
   gap: 20px;
 }
 
@@ -34,9 +35,16 @@ html, body {
 .header-greeting span { color: var(--accent); }
 .header-date { font-size: 12px; color: var(--muted); margin-top: 2px; text-transform: capitalize; }
 
-/* ── CARD ── */
+/* â”€â”€ STREAK â”€â”€ */
+.streak-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-bg); color: var(--accent);
+  font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 20px;
+}
+
+/* â”€â”€ CARD â”€â”€ */
 .card {
-  position: relative;        /* necessario per posizionare l'overlay */
+  position: relative;
   width: 100%; max-width: 420px;
   background: var(--surface);
   border-radius: 24px;
@@ -58,8 +66,7 @@ html, body {
 .timer-label { font-size: 12px; color: var(--muted); }
 .timer-value { font-size: 14px; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: .5px; }
 
-/* ── GIFT OVERLAY ── */
-/* copre tutta la card: body + footer */
+/* â”€â”€ GIFT OVERLAY â”€â”€ */
 .gift-overlay {
   position: absolute;
   inset: 0;
@@ -74,7 +81,6 @@ html, body {
 }
 .gift-overlay:active { opacity: 0.9; }
 
-/* Quattro quadranti */
 .gift-paper {
   position: absolute;
   width: 50%; height: 50%;
@@ -87,7 +93,6 @@ html, body {
 .gift-paper.bl { bottom: 0; left: 0;  transform-origin: bottom left; }
 .gift-paper.br { bottom: 0; right: 0; transform-origin: bottom right; }
 
-/* Nastri */
 .gift-ribbon-h {
   position: absolute; top: 50%; left: 0; right: 0;
   height: 22px; transform: translateY(-50%);
@@ -103,7 +108,6 @@ html, body {
   transition: opacity 0.3s ease;
 }
 
-/* Fiocco */
 .gift-bow {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -65%);
@@ -113,7 +117,6 @@ html, body {
 }
 .gift-bow svg { width: 90px; height: 56px; }
 
-/* Suggerimento */
 .gift-hint {
   position: absolute; bottom: 18px; left: 0; right: 0;
   text-align: center; font-size: 13px;
@@ -122,7 +125,6 @@ html, body {
   transition: opacity 0.2s ease;
 }
 
-/* ── ANIMAZIONE APERTURA ── */
 .gift-overlay.opening .gift-paper.tl { transform: translate(-110%, -110%); }
 .gift-overlay.opening .gift-paper.tr { transform: translate(110%, -110%); }
 .gift-overlay.opening .gift-paper.bl { transform: translate(-110%, 110%); }
@@ -132,29 +134,46 @@ html, body {
 .gift-overlay.opening .gift-bow,
 .gift-overlay.opening .gift-hint     { opacity: 0; }
 
-/* background dell'overlay si rende trasparente durante l'apertura */
 .gift-overlay.opening { background: transparent; }
-
-/* fade out finale dell'overlay */
 .gift-overlay.done { opacity: 0; pointer-events: none; }
 
-/* ── MESSAGGIO ── */
 .revealed-text {
   font-size: 22px; font-weight: 400;
   color: var(--text); line-height: 1.5;
   text-align: center;
 }
 
-/* ── BOTTOM NAV ── */
-.bottom-row {
-  width: 100%; max-width: 420px;
-  display: flex; justify-content: center;
-  padding-top: 4px;
+/* â”€â”€ RISPOSTA â”€â”€ */
+.reply-card {
+  width: 100%; max-width: 420px; background: var(--surface);
+  border-radius: 20px; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 1px 10px rgba(180,80,100,.07);
 }
-.link-btn {
-  background: none; border: none; color: var(--muted);
-  font-family: var(--font); font-size: 13px;
-  padding: 8px 16px; cursor: pointer; border-radius: 10px;
-  transition: color .15s; text-decoration: none; display: inline-block;
+.reply-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.reply-row { display: flex; gap: 8px; }
+.reply-row input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px; font-family: var(--font);
+  font-size: 14px; color: var(--text); outline: none; transition: border-color .2s;
 }
-.link-btn:active { color: var(--accent); }
+.reply-row input:focus { border-color: var(--accent); }
+.reply-send {
+  background: var(--accent); color: #fff; border: none; border-radius: 12px;
+  width: 44px; font-size: 16px; cursor: pointer; flex-shrink: 0;
+}
+.reply-send:active { filter: brightness(.9); }
+.reply-sent { font-size: 14px; color: var(--muted); font-style: italic; }
+
+/* â”€â”€ NAV â”€â”€ */
+.nav-row { width: 100%; max-width: 420px; display: flex; gap: 12px; }
+.nav-btn {
+  flex: 1; background: var(--surface); border-radius: 18px; padding: 16px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-decoration: none; color: var(--text);
+  box-shadow: 0 1px 10px rgba(180,80,100,.07);
+  transition: transform .15s;
+}
+.nav-btn:active { transform: scale(0.96); }
+.nav-btn-icon { font-size: 22px; }
+.nav-btn-label { font-size: 12px; color: var(--muted); text-align: center; font-weight: 500; }
