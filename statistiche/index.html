@@ -1,4 +1,3 @@
-<!-- Percorso nel repo: statistiche/index.html -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -23,14 +22,6 @@
 <script>
 window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 
-function todayKey() { return new Date().toISOString().split('T')[0]; }
-function yesterdayKey() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
-}
-function currentDayKey() { return new Date().getHours() >= 10 ? todayKey() : yesterdayKey(); }
-
 function applyTheme(appData) {
   const t = (appData && appData.theme) || {};
   const root = document.documentElement.style;
@@ -41,35 +32,54 @@ function applyTheme(appData) {
   Object.keys(map).forEach(k => { if (t[k]) root.setProperty(map[k], t[k]); });
 }
 
-function computeCurrentStreak(appData) {
-  const opened = new Set(appData.openedDates || []);
-  let count = 0;
-  let cursor = new Date(currentDayKey());
-  while (opened.has(cursor.toISOString().split('T')[0])) {
-    count++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return count;
+function countWords(messages) {
+  return Object.values(messages).reduce((tot, msg) => {
+    const words = (msg || '').trim().split(/\s+/).filter(Boolean);
+    return tot + words.length;
+  }, 0);
 }
 
-function computeBestStreak(appData) {
-  const dates = [...(appData.openedDates || [])].sort();
-  let best = 0, run = 0, prev = null;
-  dates.forEach(d => {
-    if (prev) {
-      const diff = Math.round((new Date(d) - new Date(prev)) / 86400000);
-      run = diff === 1 ? run + 1 : 1;
-    } else {
-      run = 1;
-    }
-    if (run > best) best = run;
-    prev = d;
+function mostUsedEmoji(messages) {
+  const emojiRegex = /\p{Extended_Pictographic}/gu;
+  const counts = {};
+  Object.values(messages).forEach(msg => {
+    const found = (msg || '').match(emojiRegex) || [];
+    found.forEach(e => { counts[e] = (counts[e] || 0) + 1; });
   });
-  return best;
+  let best = null, bestCount = 0;
+  Object.entries(counts).forEach(([emoji, count]) => {
+    if (count > bestCount) { best = emoji; bestCount = count; }
+  });
+  return best ? `${best} (${bestCount}x)` : '—';
+}
+
+function daysUntil(target) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
+function nextMesiversario() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let target = new Date(today.getFullYear(), today.getMonth(), 22);
+  if (target < today) target = new Date(today.getFullYear(), today.getMonth() + 1, 22);
+  return target;
+}
+
+function nextAnniversario() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let target = new Date(today.getFullYear(), 0, 22);
+  if (target < today) target = new Date(today.getFullYear() + 1, 0, 22);
+  return target;
+}
+
+function formatCountdown(days) {
+  if (days === 0) return 'Oggi!';
+  if (days === 1) return 'Domani';
+  return `${days} giorni`;
 }
 
 async function init() {
-  let appData = { messages: {}, replies: {}, openedDates: [] };
+  let appData = { messages: {} };
 
   try {
     const res = await fetch(window.WORKER_URL, { method: 'GET' });
@@ -89,35 +99,18 @@ async function init() {
   applyTheme(appData);
 
   const messages = appData.messages || {};
-  const replies = appData.replies || {};
-  const opened = appData.openedDates || [];
-
   const totalMsg = Object.keys(messages).length;
-  const totalOpened = opened.length;
-  const totalReplies = Object.keys(replies).length;
-  const currentStreak = computeCurrentStreak(appData);
-  const bestStreak = computeBestStreak(appData);
-
-  const dates = Object.keys(messages).sort();
-  let openRate = 0;
-  if (dates.length) {
-    const first = new Date(dates[0]);
-    const today = new Date(todayKey());
-    const daysSpan = Math.max(1, Math.round((today - first) / 86400000) + 1);
-    openRate = Math.round((totalOpened / daysSpan) * 100);
-  }
-
-  const lengths = Object.values(messages).map(m => (m || '').length);
-  const avgLen = lengths.length ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 0;
+  const totalWords = countWords(messages);
+  const topEmoji = mostUsedEmoji(messages);
+  const mesiversario = formatCountdown(daysUntil(nextMesiversario()));
+  const anniversario = formatCountdown(daysUntil(nextAnniversario()));
 
   const stats = [
     { value: totalMsg, label: 'Motivi scritti' },
-    { value: totalOpened, label: 'Giorni aperti' },
-    { value: currentStreak, label: 'Streak attuale' },
-    { value: bestStreak, label: 'Streak record' },
-    { value: totalReplies, label: 'Risposte inviate' },
-    { value: openRate + '%', label: 'Tasso di apertura' },
-    { value: avgLen, label: 'Lunghezza media (caratteri)' }
+    { value: totalWords, label: 'Parole scritte in totale' },
+    { value: topEmoji, label: 'Emoji più usata' },
+    { value: mesiversario, label: 'Al prossimo mesiversario' },
+    { value: anniversario, label: 'Al prossimo anniversario' }
   ];
 
   document.getElementById('loading').style.display = 'none';
