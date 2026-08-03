@@ -5,9 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <link rel="stylesheet" href="s.css">
-  <script src="../script/fetch_cf.js"></script>
   <title>Admin</title>
-  
 </head>
 <body>
 
@@ -45,50 +43,136 @@
     <div class="msg-list" id="msg-list"></div>
   </div>
 
+  <!-- risposte ricevute -->
+  <div class="card">
+    <div class="card-title">Risposte ricevute</div>
+    <div class="msg-list" id="reply-list"></div>
+  </div>
+
+  <!-- aspetto -->
+  <div class="card">
+    <div class="card-title">Aspetto</div>
+    <div class="theme-grid">
+      <label>Sfondo <input type="color" id="theme-bg"></label>
+      <label>Superficie <input type="color" id="theme-surface"></label>
+      <label>Superficie chiara <input type="color" id="theme-surface2"></label>
+      <label>Bordo <input type="color" id="theme-border"></label>
+      <label>Colore principale <input type="color" id="theme-accent"></label>
+      <label>Sfondo accento <input type="color" id="theme-accentBg"></label>
+      <label>Testo <input type="color" id="theme-text"></label>
+      <label>Testo secondario <input type="color" id="theme-muted"></label>
+    </div>
+    <button class="btn btn-primary" onclick="saveTheme()">Salva aspetto</button>
+    <button class="btn btn-secondary" onclick="resetTheme()">Ripristina colori originali</button>
+    <div id="theme-status" class="status-msg"></div>
+  </div>
+
 </div>
 
 <script>
-// Rimosso dataFileSha da qui perché deve essere condiviso globalmente con fetch_cf.js
-// Inizializziamo appData se non è ancora pronto
-window.appData = window.appData || { nicknames: [], messages: {} };
-window.WORKER_URL = window.WORKER_URL || "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
+// --- CONFIGURAZIONE GLOBALE ---
+window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
+window.dataFileSha = null;
+window.appData = { nicknames: [], messages: {}, replies: {}, openedDates: [], theme: {} };
 
-// SALVATAGGIO TRAMITE WORKER
-async function saveData(statusId) {
-  // Prepariamo la stringa base64 in modo sicuro per i caratteri speciali
+const DEFAULT_THEME = {
+  bg: '#fce8ec', surface: '#ffffff', surface2: '#fdf2f4', border: '#f0cdd4',
+  accent: '#c4637a', accentBg: '#f7dde3', text: '#2d1a1f', muted: '#b08890'
+};
+const THEME_KEYS = ['bg', 'surface', 'surface2', 'border', 'accent', 'accentBg', 'text', 'muted'];
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function formatDate(str) { if (!str) return ''; const [y, m, d] = str.split('-'); return `${d}/${m}/${y}`; }
+
+// --- CARICAMENTO / SALVATAGGIO TRAMITE WORKER ---
+async function loadData() {
+  try {
+    const res = await fetch(window.WORKER_URL, { method: 'GET' });
+
+    if (res.status === 404) {
+      await createDataFile();
+      return;
+    }
+
+    const json = await res.json();
+    window.dataFileSha = json.sha || (json.content && json.content.sha) || null;
+
+    if (json && json.messages) {
+      window.appData = json;
+    } else if (json.content && typeof json.content === 'object') {
+      window.appData = json.content;
+    } else if (json.content && typeof json.content === 'string') {
+      try {
+        const decoded = decodeURIComponent(escape(atob(json.content.replace(/\s/g, ''))));
+        window.appData = JSON.parse(decoded);
+      } catch (base64Err) {
+        console.error('Errore decodifica Base64:', base64Err);
+      }
+    }
+
+    if (!window.appData) window.appData = {};
+    if (!Array.isArray(window.appData.nicknames)) window.appData.nicknames = [];
+    if (typeof window.appData.messages !== 'object' || Array.isArray(window.appData.messages)) window.appData.messages = {};
+    if (typeof window.appData.replies !== 'object' || Array.isArray(window.appData.replies)) window.appData.replies = {};
+    if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
+    if (typeof window.appData.theme !== 'object' || Array.isArray(window.appData.theme)) window.appData.theme = {};
+
+  } catch (e) {
+    console.error('Errore critico nel fetch:', e);
+  }
+}
+
+async function createDataFile() {
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
-  
   try {
     const res = await fetch(window.WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        content: content,
-        sha: window.dataFileSha // Usa la variabile globale condivisa
-      })
+      body: JSON.stringify({ content: content })
+    });
+    const json = await res.json();
+    window.dataFileSha = json.sha || (json.content && json.content.sha);
+  } catch (e) {
+    console.warn('Errore durante la creazione del file:', e);
+  }
+}
+
+async function saveData(statusId) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
+  try {
+    const res = await fetch(window.WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content, sha: window.dataFileSha })
     });
 
     if (!res.ok) throw new Error(await res.text());
     const json = await res.json();
-    
-    // Aggiorna lo SHA globale ricevuto dal server
+
     if (json.content && json.content.sha) {
       window.dataFileSha = json.content.sha;
     } else if (json.sha) {
       window.dataFileSha = json.sha;
     }
-    
-    showStatus(statusId, 'Salvato con successo!', 'ok');
-  } catch(e) { 
-    console.error("Errore Worker Admin:", e);
-    showStatus(statusId, 'Errore nel salvataggio', 'err'); 
+
+    if (statusId) showStatus(statusId, 'Salvato con successo!', 'ok');
+  } catch (e) {
+    console.error('Errore Worker Admin:', e);
+    if (statusId) showStatus(statusId, 'Errore nel salvataggio', 'err');
   }
 }
 
-// ── ADMIN UI ──────────────────────────────────────────────────────────
-function todayKey() { return new Date().toISOString().split('T')[0]; }
-function formatDate(str) { if(!str) return ''; const [y,m,d] = str.split('-'); return `${d}/${m}/${y}`;}
+function applyTheme() {
+  const t = (window.appData && window.appData.theme) || {};
+  const root = document.documentElement.style;
+  const map = {
+    bg: '--bg', surface: '--surface', surface2: '--surface2', border: '--border',
+    accent: '--accent', accentBg: '--accent-bg', text: '--text', muted: '--muted'
+  };
+  Object.keys(map).forEach(k => { if (t[k]) root.setProperty(map[k], t[k]); });
+}
 
+// ── ADMIN UI ──────────────────────────────────────────────────────────
 function renderAdmin() {
   const nickList = document.getElementById('nick-list');
   if (nickList) {
@@ -108,21 +192,47 @@ function renderAdmin() {
   if (msgList) {
     msgList.innerHTML = '';
     const keys = Object.keys(window.appData.messages || {}).sort().reverse();
-    if (!keys.length) { 
-      msgList.innerHTML = '<p class="empty-msg">Nessun messaggio ancora.</p>'; 
-      return; 
+    if (!keys.length) {
+      msgList.innerHTML = '<p class="empty-msg">Nessun messaggio ancora.</p>';
+    } else {
+      keys.forEach(k => {
+        const el = document.createElement('div');
+        el.className = 'msg-item';
+        el.innerHTML = `<div class="msg-item-left">
+            <div class="msg-item-date">${formatDate(k)}</div>
+            <div class="msg-item-text">${window.appData.messages[k]}</div>
+          </div>
+          <button class="btn-danger" onclick="deleteMsg('${k}')">Elimina</button>`;
+        msgList.appendChild(el);
+      });
     }
-    keys.forEach(k => {
-      const el = document.createElement('div');
-      el.className = 'msg-item';
-      el.innerHTML = `<div class="msg-item-left">
-          <div class="msg-item-date">${formatDate(k)}</div>
-          <div class="msg-item-text">${window.appData.messages[k]}</div>
-        </div>
-        <button class="btn-danger" onclick="deleteMsg('${k}')">Elimina</button>`;
-      msgList.appendChild(el);
-    });
   }
+
+  const replyList = document.getElementById('reply-list');
+  if (replyList) {
+    replyList.innerHTML = '';
+    const rkeys = Object.keys(window.appData.replies || {}).sort().reverse();
+    if (!rkeys.length) {
+      replyList.innerHTML = '<p class="empty-msg">Nessuna risposta ancora.</p>';
+    } else {
+      rkeys.forEach(k => {
+        const el = document.createElement('div');
+        el.className = 'msg-item';
+        el.innerHTML = `<div class="msg-item-left">
+            <div class="msg-item-date">${formatDate(k)}</div>
+            <div class="msg-item-text">${window.appData.replies[k]}</div>
+          </div>
+          <button class="btn-danger" onclick="deleteReply('${k}')">Elimina</button>`;
+        replyList.appendChild(el);
+      });
+    }
+  }
+
+  const theme = Object.assign({}, DEFAULT_THEME, window.appData.theme || {});
+  THEME_KEYS.forEach(k => {
+    const input = document.getElementById('theme-' + k);
+    if (input) input.value = theme[k];
+  });
 }
 
 function addNick() {
@@ -132,25 +242,49 @@ function addNick() {
   window.appData.nicknames.push(val); input.value = ''; renderAdmin();
 }
 
-function removeNick(i) { window.appData.nicknames.splice(i,1); renderAdmin(); }
+function removeNick(i) { window.appData.nicknames.splice(i, 1); renderAdmin(); }
 async function saveNicks() { await saveData('nick-status'); }
 
 async function addMessage() {
   const date = document.getElementById('new-date').value;
   const text = document.getElementById('new-text').value.trim();
-  if (!date || !text) { showStatus('add-status','Compila data e testo','err'); return; }
+  if (!date || !text) { showStatus('add-status', 'Compila data e testo', 'err'); return; }
   if (!window.appData.messages) window.appData.messages = {};
   window.appData.messages[date] = text;
   document.getElementById('new-text').value = '';
-  await saveData('add-status'); 
+  await saveData('add-status');
   renderAdmin();
 }
 
 async function deleteMsg(key) {
   if (!confirm(`Eliminare il messaggio del ${formatDate(key)}?`)) return;
   delete window.appData.messages[key];
-  await saveData('add-status'); 
+  await saveData('add-status');
   renderAdmin();
+}
+
+async function deleteReply(key) {
+  if (!confirm(`Eliminare la risposta del ${formatDate(key)}?`)) return;
+  delete window.appData.replies[key];
+  await saveData('add-status');
+  renderAdmin();
+}
+
+async function saveTheme() {
+  const theme = {};
+  THEME_KEYS.forEach(k => {
+    const input = document.getElementById('theme-' + k);
+    if (input) theme[k] = input.value;
+  });
+  window.appData.theme = theme;
+  applyTheme();
+  await saveData('theme-status');
+}
+
+function resetTheme() {
+  window.appData.theme = {};
+  renderAdmin();
+  applyTheme();
 }
 
 function showStatus(id, msg, type) {
@@ -161,12 +295,9 @@ function showStatus(id, msg, type) {
 }
 
 async function initAdmin() {
-  if (typeof loadData === 'function') {
-    await loadData(); 
-    renderAdmin();
-  } else {
-    console.error("Funzione loadData non trovata. Controlla fetch_cf.js");
-  }
+  await loadData();
+  applyTheme();
+  renderAdmin();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
