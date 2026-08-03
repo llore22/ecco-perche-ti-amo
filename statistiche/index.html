@@ -1,0 +1,137 @@
+<!-- Percorso nel repo: statistiche/index.html -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <link rel="icon" type="image/png" href="../heart.png">
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="s.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Statistiche</title>
+</head>
+<body>
+  <div class="page">
+    <div class="top-bar">
+      <a class="back-btn" href="../main/index.html">Indietro</a>
+    </div>
+    <div style="width:100%;max-width:420px">
+      <div class="page-title">Statistiche</div>
+    </div>
+    <div class="loading" id="loading">Caricamento...</div>
+    <div class="stat-grid" id="stat-grid" style="display:none"></div>
+  </div>
+
+<script>
+window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function yesterdayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+function currentDayKey() { return new Date().getHours() >= 10 ? todayKey() : yesterdayKey(); }
+
+function applyTheme(appData) {
+  const t = (appData && appData.theme) || {};
+  const root = document.documentElement.style;
+  const map = {
+    bg: '--bg', surface: '--surface', surface2: '--surface2', border: '--border',
+    accent: '--accent', accentBg: '--accent-bg', text: '--text', muted: '--muted'
+  };
+  Object.keys(map).forEach(k => { if (t[k]) root.setProperty(map[k], t[k]); });
+}
+
+function computeCurrentStreak(appData) {
+  const opened = new Set(appData.openedDates || []);
+  let count = 0;
+  let cursor = new Date(currentDayKey());
+  while (opened.has(cursor.toISOString().split('T')[0])) {
+    count++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return count;
+}
+
+function computeBestStreak(appData) {
+  const dates = [...(appData.openedDates || [])].sort();
+  let best = 0, run = 0, prev = null;
+  dates.forEach(d => {
+    if (prev) {
+      const diff = Math.round((new Date(d) - new Date(prev)) / 86400000);
+      run = diff === 1 ? run + 1 : 1;
+    } else {
+      run = 1;
+    }
+    if (run > best) best = run;
+    prev = d;
+  });
+  return best;
+}
+
+async function init() {
+  let appData = { messages: {}, replies: {}, openedDates: [] };
+
+  try {
+    const res = await fetch(window.WORKER_URL, { method: 'GET' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.messages) appData = json;
+      else if (json.content && typeof json.content === 'object') appData = json.content;
+      else if (json.content && typeof json.content === 'string') {
+        const decoded = decodeURIComponent(escape(atob(json.content.replace(/\s/g, ''))));
+        appData = JSON.parse(decoded);
+      }
+    }
+  } catch (e) {
+    console.warn('Errore durante il caricamento:', e);
+  }
+
+  applyTheme(appData);
+
+  const messages = appData.messages || {};
+  const replies = appData.replies || {};
+  const opened = appData.openedDates || [];
+
+  const totalMsg = Object.keys(messages).length;
+  const totalOpened = opened.length;
+  const totalReplies = Object.keys(replies).length;
+  const currentStreak = computeCurrentStreak(appData);
+  const bestStreak = computeBestStreak(appData);
+
+  const dates = Object.keys(messages).sort();
+  let openRate = 0;
+  if (dates.length) {
+    const first = new Date(dates[0]);
+    const today = new Date(todayKey());
+    const daysSpan = Math.max(1, Math.round((today - first) / 86400000) + 1);
+    openRate = Math.round((totalOpened / daysSpan) * 100);
+  }
+
+  const lengths = Object.values(messages).map(m => (m || '').length);
+  const avgLen = lengths.length ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 0;
+
+  const stats = [
+    { value: totalMsg, label: 'Motivi scritti' },
+    { value: totalOpened, label: 'Giorni aperti' },
+    { value: currentStreak, label: 'Streak attuale' },
+    { value: bestStreak, label: 'Streak record' },
+    { value: totalReplies, label: 'Risposte inviate' },
+    { value: openRate + '%', label: 'Tasso di apertura' },
+    { value: avgLen, label: 'Lunghezza media (caratteri)' }
+  ];
+
+  document.getElementById('loading').style.display = 'none';
+  const grid = document.getElementById('stat-grid');
+  grid.style.display = 'grid';
+  stats.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'stat-card';
+    el.innerHTML = `<div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div>`;
+    grid.appendChild(el);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
