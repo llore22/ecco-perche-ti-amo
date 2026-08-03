@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -17,6 +18,10 @@
   <div class="header">
     <div class="header-greeting">eii <span id="welcome-name">...</span></div>
     <div class="header-date" id="header-date"></div>
+  </div>
+
+  <div class="streak-badge" id="streak-badge" style="display:none">
+    🔥 <span id="streak-count">0</span> giorni di fila
   </div>
 
   <div class="card" id="main-card">
@@ -46,8 +51,24 @@
     </div>
   </div>
 
-  <div class="bottom-row">
-    <a class="link-btn" href="../storico/index.html">messaggi passati</a>
+  <div class="reply-card" id="reply-card" style="display:none">
+    <div class="reply-label">Rispondi</div>
+    <div class="reply-row">
+      <input type="text" id="reply-input" placeholder="Scrivi una risposta..." />
+      <button class="reply-send" onclick="sendReply()">➤</button>
+    </div>
+    <div class="reply-sent" id="reply-sent" style="display:none"></div>
+  </div>
+
+  <div class="nav-row">
+    <a class="nav-btn" href="../storico/index.html">
+      <span class="nav-btn-icon">📜</span>
+      <span class="nav-btn-label">Messaggi passati</span>
+    </a>
+    <a class="nav-btn" href="../statistiche/index.html">
+      <span class="nav-btn-icon">📊</span>
+      <span class="nav-btn-label">Statistiche</span>
+    </a>
   </div>
 
 </div>
@@ -56,32 +77,30 @@
 // --- CONFIGURAZIONE GLOBALE ---
 window.WORKER_URL = "https://ecco-perche-ti-amo.p6kw2n4wh4.workers.dev";
 window.dataFileSha = null;
-window.appData = { nicknames: [], messages: {}, openedDates: [] };
+window.appData = { nicknames: [], messages: {}, replies: {}, openedDates: [], theme: {} };
 let revealed = false;
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
 function yesterdayKey() {
   const d = new Date();
-  d.setDate(d.getDate() - 1); // Sottrae un giorno alla data corrente
+  d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
 }
-// --- FUNZIONE CARICAMENTO DATI (Ex fetch_cf.js) ---
+function currentDayKey() { return new Date().getHours() >= 10 ? todayKey() : yesterdayKey(); }
+
+// --- CARICAMENTO DATI ---
 async function loadData() {
   try {
-    console.log("2. Tentativo di caricamento da:", window.WORKER_URL);
     const res = await fetch(window.WORKER_URL, { method: 'GET' });
-    
-    if (res.status === 404) { 
-      console.log("-> File non trovato (404), creo un file vuoto...");
-      await createDataFile(); 
-      return; 
+
+    if (res.status === 404) {
+      await createDataFile();
+      return;
     }
-    
+
     const json = await res.json();
-    console.log("3. Risposta grezza dal Worker:", json);
-    
-    window.dataFileSha = json.sha || (json.content && json.content.sha) || null; 
-    
+    window.dataFileSha = json.sha || (json.content && json.content.sha) || null;
+
     if (json && json.messages) {
       window.appData = json;
     } else if (json.content && typeof json.content === 'object') {
@@ -90,19 +109,19 @@ async function loadData() {
       try {
         const decoded = decodeURIComponent(escape(atob(json.content.replace(/\s/g, ''))));
         window.appData = JSON.parse(decoded);
-      } catch(base64Err) {
-        console.error("Errore decodifica Base64:", base64Err);
+      } catch (base64Err) {
+        console.error('Errore decodifica Base64:', base64Err);
       }
     }
 
     if (!window.appData) window.appData = {};
     if (!Array.isArray(window.appData.nicknames)) window.appData.nicknames = [];
     if (typeof window.appData.messages !== 'object' || Array.isArray(window.appData.messages)) window.appData.messages = {};
+    if (typeof window.appData.replies !== 'object' || Array.isArray(window.appData.replies)) window.appData.replies = {};
     if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
+    if (typeof window.appData.theme !== 'object' || Array.isArray(window.appData.theme)) window.appData.theme = {};
 
-    console.log("4. Dati elaborati e pronti:", window.appData);
-    
-  } catch(e) {
+  } catch (e) {
     console.error('Errore critico nel fetch:', e);
   }
 }
@@ -110,16 +129,15 @@ async function loadData() {
 async function createDataFile() {
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(window.appData, null, 2))));
   try {
-    const res = await fetch(window.WORKER_URL, {  
-      method: 'POST', 
+    const res = await fetch(window.WORKER_URL, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content }) 
+      body: JSON.stringify({ content: content })
     });
     const json = await res.json();
     window.dataFileSha = json.sha || (json.content && json.content.sha);
-    console.log("Nuovo file inizializzato sul server!");
-  } catch(e) { 
-    console.warn("Errore durante la creazione del file:", e); 
+  } catch (e) {
+    console.warn('Errore durante la creazione del file:', e);
   }
 }
 
@@ -134,10 +152,32 @@ async function saveData() {
     if (!res.ok) throw new Error(await res.text());
     const json = await res.json();
     window.dataFileSha = json.sha || (json.content && json.content.sha) || window.dataFileSha;
-    console.log("Dati di apertura salvati con successo!");
-  } catch(e) { 
-    console.error("Errore salvataggio Worker:", e);
+  } catch (e) {
+    console.error('Errore salvataggio Worker:', e);
   }
+}
+
+// --- TEMA ---
+function applyTheme() {
+  const t = (window.appData && window.appData.theme) || {};
+  const root = document.documentElement.style;
+  const map = {
+    bg: '--bg', surface: '--surface', surface2: '--surface2', border: '--border',
+    accent: '--accent', accentBg: '--accent-bg', text: '--text', muted: '--muted'
+  };
+  Object.keys(map).forEach(k => { if (t[k]) root.setProperty(map[k], t[k]); });
+}
+
+// --- STREAK ---
+function computeCurrentStreak() {
+  const opened = new Set(window.appData.openedDates || []);
+  let count = 0;
+  let cursor = new Date(currentDayKey());
+  while (opened.has(cursor.toISOString().split('T')[0])) {
+    count++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return count;
 }
 
 function startGlobalTimer() {
@@ -149,22 +189,62 @@ function startGlobalTimer() {
     if (now.getHours() >= 10) next.setDate(next.getDate() + 1);
     next.setHours(10, 0, 0, 0);
     const diff = next - now;
-    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
-    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
-    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
     el.textContent = `${h}:${m}:${s}`;
   };
   tick();
   setInterval(tick, 1000);
 }
 
+function renderStreak() {
+  const el = document.getElementById('streak-badge');
+  const count = computeCurrentStreak();
+  if (count > 0) {
+    document.getElementById('streak-count').textContent = count;
+    el.style.display = 'inline-flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function renderReplyBox() {
+  const day = currentDayKey();
+  const card = document.getElementById('reply-card');
+  const hasMsg = !!(window.appData.messages || {})[day];
+  if (!hasMsg) { card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+
+  const row = card.querySelector('.reply-row');
+  const sentEl = document.getElementById('reply-sent');
+  const existing = (window.appData.replies || {})[day];
+
+  if (existing) {
+    row.style.display = 'none';
+    sentEl.style.display = 'block';
+    sentEl.textContent = `Hai risposto: "${existing}"`;
+  } else {
+    row.style.display = 'flex';
+    sentEl.style.display = 'none';
+  }
+}
+
+async function sendReply() {
+  const input = document.getElementById('reply-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const day = currentDayKey();
+  if (!window.appData.replies) window.appData.replies = {};
+  window.appData.replies[day] = val;
+  input.value = '';
+  await saveData();
+  renderReplyBox();
+}
+
 function renderCard() {
-  const oggi = new Date();
-  const hour = oggi.getHours();
-  
-  let today = todayKey();
-  let yesterday = yesterdayKey();
-  const msg = new Date().getHours() >= 10 ? (window.appData.messages || {})[today] : (window.appData.messages || {})[yesterday];
+  const day = currentDayKey();
+  const msg = (window.appData.messages || {})[day];
   const body = document.getElementById('card-body');
   const overlay = document.getElementById('giftOverlay');
 
@@ -182,7 +262,7 @@ function renderCard() {
   if (!revealed && overlay) {
     overlay.style.display = 'block';
   } else if (overlay) {
-    overlay.remove(); // Se è già stato aperto oggi, rimuovi il regalo all'avvio
+    overlay.remove();
   }
 }
 
@@ -197,9 +277,14 @@ function openGift() {
     overlay.classList.add('done');
     revealed = true;
     if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
-    if (!window.appData.openedDates.includes(todayKey())) {
-      window.appData.openedDates.push(todayKey());
-      saveData();
+    if (!window.appData.openedDates.includes(currentDayKey())) {
+      window.appData.openedDates.push(currentDayKey());
+      saveData().then(() => {
+        renderStreak();
+        renderReplyBox();
+      });
+    } else {
+      renderReplyBox();
     }
     setTimeout(() => overlay.remove(), 400);
   }, 700);
@@ -207,31 +292,26 @@ function openGift() {
 
 // --- APPLICAZIONE LOGICA ALL'AVVIO ---
 async function init() {
-  console.log("1. Funzione init() PARTITA!");
-  
-  // Carica i dati dal worker
   await loadData();
-  
-  console.log("5. Controllo date e nickname...");
-  if (!Array.isArray(window.appData.openedDates)) {
-    window.appData.openedDates = [];
-  }
-  revealed = new Date().getHours() >= 10 ? window.appData.openedDates.includes(todayKey()) : window.appData.openedDates.includes(yesterdayKey());
+  applyTheme();
 
-  let nicks = ["Amore"]; 
+  if (!Array.isArray(window.appData.openedDates)) window.appData.openedDates = [];
+  revealed = window.appData.openedDates.includes(currentDayKey());
+
+  let nicks = ['Amore'];
   if (Array.isArray(window.appData.nicknames) && window.appData.nicknames.length > 0) {
     nicks = window.appData.nicknames;
   }
-    
-  document.getElementById('welcome-name').textContent = nicks[Math.floor(Math.random() * nicks.length)];
-  document.getElementById('header-date').textContent = new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
 
-  console.log("6. Mostro la card finale.");
+  document.getElementById('welcome-name').textContent = nicks[Math.floor(Math.random() * nicks.length)];
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  renderStreak();
   renderCard();
+  renderReplyBox();
   startGlobalTimer();
 }
 
-// Avvia tutto non appena il DOM è pronto
 window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
