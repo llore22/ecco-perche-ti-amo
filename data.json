@@ -108,11 +108,11 @@
     "2026-08-03": "mwahhh"
   },
   "theme": {
-    "bg": "#d50000",
-    "surface": "#ffc9e0",
-    "surface2": "#ffffff",
+    "bg": "#fce8ec",
+    "surface": "#ffffff",
+    "surface2": "#fdf2f4",
     "border": "#f0cdd4",
-    "accent": "#e80000",
+    "accent": "#c4637a",
     "accentBg": "#f7dde3",
     "text": "#2d1a1f",
     "muted": "#b08890"
